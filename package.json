@@ -1,0 +1,36 @@
+{
+  "name": "@architect/http-proxy",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "bundle": "browserify node_modules/@architect/functions/src/http/proxy/arc-default-get-index.js --node --external aws-sdk --standalone proxy > dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/architect/http-proxy.git"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "amazon",
+    "serverless",
+    "cloud",
+    "cloudfunctions",
+    "apigateway",
+    "dynamodb",
+    "s3",
+    "sns",
+    "api gateway",
+    "framework"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/architect/http-proxy/issues"
+  },
+  "homepage": "https://github.com/architect/http-proxy#readme",
+  "devDependencies": {
+    "@architect/functions": "^3.3.12",
+    "browserify": "^16.5.0"
+  }
+}
