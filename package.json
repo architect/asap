@@ -1,7 +1,7 @@
 {
   "name": "@architect/http-proxy",
   "version": "0.0.1",
-  "description": "",
+  "description": "Architect HTTP proxy distribution, extracted from @architect/functions (arc.http.proxy)",
   "main": "dist/index.js",
   "scripts": {
     "bundle": "browserify node_modules/@architect/functions/src/http/proxy/arc-default-get-index.js --node --external aws-sdk --standalone proxy > dist/index.js"
@@ -25,9 +25,7 @@
     "framework"
   ],
   "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/architect/http-proxy/issues"
-  },
+  "bugs": "https://github.com/architect/http-proxy/issues",
   "homepage": "https://github.com/architect/http-proxy#readme",
   "devDependencies": {
     "@architect/functions": "^3.3.12",
