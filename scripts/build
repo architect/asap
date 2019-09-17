@@ -1,0 +1,83 @@
+#!/usr/bin/env node
+
+let exec = require('child_process').execSync
+let fs = require('fs')
+let join = require('path').join
+let semver = require('semver')
+let series = require('run-series')
+
+// package.json
+let packageFile = join('..', 'package.json')
+let package = require(packageFile)
+let currentVersion = package.version
+// package-lock.json
+let packageLockFile = join(__dirname, '..', 'package-lock.json')
+let packageLock // to be saved later
+let newVersion  // ditto
+
+series([
+  // Init
+  callback => {
+    console.log(`Bundling HTTP proxy from @architect/functions`)
+    console.log(`Found @architect/functions version ${currentVersion}`)
+    callback()
+  },
+
+  // Install @arc/functions
+  callback => {
+    console.log('Installing @architect/functions@latest...')
+    let cmd = 'npm i @architect/functions@latest'
+    let result = exec(cmd, {shell:true})
+    console.log(result.toString())
+    callback()
+  },
+
+  // Compare versions
+  callback => {
+    packageLock = JSON.parse(fs.readFileSync(join(__dirname, '..', 'package-lock.json')).toString())
+    newVersion = packageLock.dependencies['@architect/functions'].version
+    console.log(`Found installed version ${newVersion}`)
+    if (semver.gt(newVersion, currentVersion)) {
+      callback()
+    }
+    else callback(Error('cancel'))
+  },
+
+  // Run the bundler
+  callback => {
+    console.log(`Bundling version ${newVersion}`)
+    let cmd = 'npm run bundle'
+    let result = exec(cmd, {shell:true})
+    console.log(result.toString())
+    callback()
+  },
+
+  // Rewrite packages
+  callback => {
+    package.version = newVersion
+    fs.writeFileSync(packageFile, JSON.stringify(package,null,2))
+    packageLock.version = newVersion
+    fs.writeFileSync(packageLockFile, JSON.stringify(packageLock,null,2))
+    callback()
+  },
+
+  // Tag git
+  callback => {
+    console.log('Adding commit and git tag')
+    let cmd = `git commit -am'${newVersion}' && git tag -a v${newVersion} -m ${newVersion}`
+    let result = exec(cmd, {shell:true})
+    console.log(result.toString())
+    callback()
+  }
+], err => {
+  if (err && err.message === 'cancel') {
+    console.log('Nothing to update!')
+  }
+  else if (err) {
+    console.log(err)
+    process.exit(1)
+  }
+  else {
+    console.log(`Finished building! Upgraded from ${currentVersion} to ${newVersion}`)
+  }
+})
