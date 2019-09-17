@@ -7,7 +7,7 @@ let semver = require('semver')
 let series = require('run-series')
 
 // package.json
-let packageFile = join('..', 'package.json')
+let packageFile = join(__dirname, '..', 'package.json')
 let package = require(packageFile)
 let currentVersion = package.version
 // package-lock.json
