@@ -29,7 +29,7 @@
   "bugs": "https://github.com/architect/http-proxy/issues",
   "homepage": "https://github.com/architect/http-proxy#readme",
   "devDependencies": {
-    "@architect/functions": "3.3.13",
+    "@architect/functions": "3.3.14",
     "browserify": "^16.5.0",
     "run-series": "^1.1.8",
     "semver": "^6.3.0"
