@@ -62,11 +62,8 @@ module.exports = [
 },{}],2:[function(require,module,exports){
 const GetIndexDefaultHandler = require('./public')
 
-exports.handler = GetIndexDefaultHandler({
-  spa: true,
-  wth: true,
-  ffs: false,
-})
+// Bundler index + defaults
+exports.handler = GetIndexDefaultHandler({spa: true})
 
 },{"./public":3}],3:[function(require,module,exports){
 let read = require('./read')
@@ -78,16 +75,33 @@ let read = require('./read')
  * @param config.spa - boolean, forces index.html no matter the folder depth
  * @param config.plugins - object, configure proxy-plugin-* transforms per file extension
  * @param config.alias - object, map of root rel urls to map to fully qualified root rel urls
+ * @param config.bucket - object, {staging, production} override the s3 bucket names
+ * @param config.bucket.staging - object, {staging, production} override the s3 bucket names
+ * @param config.bucket.production - object, {staging, production} override the s3 bucket names
+ * @param config.bucket.folder - string, bucket folder
+ * @param config.cacheControl - string, set a custom Cache-Control max-age header value
  *
  * @returns HTTPLambda - an HTTP Lambda function that proxies calls to S3
  */
 module.exports = function proxyPublic(config={}) {
   return async function proxy(req) {
 
-    let Bucket = process.env.ARC_STATIC_BUCKET
+    let isProduction = process.env.NODE_ENV === 'production'
+    let configBucket = config.bucket
+    let bucketSetting = isProduction
+      ? configBucket && configBucket['production']
+      : configBucket && configBucket['staging']
+    // Ok, all that out of the way, let's set the actual bucket, eh?
+    let Bucket = process.env.ARC_STATIC_BUCKET || bucketSetting
+    if (!Bucket) throw Error('Bucket must be configured, use ARC_STATIC_BUCKET or config object')
     let Key // resolved below
 
-    if (config && config.spa) {
+    // Allow unsetting of SPA mode with ARC_STATIC_SPA
+    let spa = process.env.ARC_STATIC_SPA === 'false'
+      ? false
+      : config && config.spa
+    if (!spa) config.spa = false
+    if (spa) {
       // if spa force index.html
       let isFolder = req.path.split('/').pop().indexOf('.') === -1
       Key = isFolder? 'index.html' : req.path.substring(1)
@@ -109,20 +123,25 @@ module.exports = function proxyPublic(config={}) {
     }
 
     // allow bucket folder prefix
-    if (process.env.ARC_STATIC_FOLDER) {
-      Key = `${process.env.ARC_STATIC_FOLDER}/${Key}`
+    let folder = process.env.ARC_STATIC_FOLDER || configBucket && configBucket.folder
+    if (folder) {
+      Key = `${folder}/${Key}`
     }
 
     // strip staging/ and production/ from req urls
     if (Key.startsWith('staging/') || Key.startsWith('production/')) {
-      Key = Key.replace('staging/', '').replace('production/')
+      Key = Key.replace('staging/', '')
+               .replace('production/', '')
     }
 
     // normalize if-none-match header to lower case; it differs between environments
     let find = k => k.toLowerCase() === 'if-none-match'
     let IfNoneMatch = req.headers && req.headers[Object.keys(req.headers).find(find)]
 
-    return await read({Key, Bucket, IfNoneMatch, config})
+    // Ensure response shape is correct for proxy SPA responses
+    let isProxy = req.resource === '/{proxy+}'
+
+    return await read({Key, Bucket, IfNoneMatch, isProxy, config})
   }
 }
 
@@ -147,11 +166,12 @@ let sandbox = require('./sandbox')
  * @param {Object} params.config
  * @returns {Object} {statusCode, headers, body}
  */
-module.exports = async function read({Bucket, Key, IfNoneMatch, config}) {
+module.exports = async function read({Bucket, Key, IfNoneMatch, isProxy, config}) {
 
   // early exit if we're running in the sandbox
-  if (process.env.NODE_ENV === 'testing')
-    return await sandbox({Key, config})
+  let local = process.env.NODE_ENV === 'testing' || process.env.ARC_LOCAL
+  if (local)
+    return await sandbox({Key, isProxy, config})
 
   let headers = {}
   let response = {}
@@ -187,10 +207,10 @@ module.exports = async function read({Bucket, Key, IfNoneMatch, config}) {
 
       // Transform first to allow for any proxy plugin mutations
       response = transform({
-        Key,         // TODO rename to file
+        Key,
         config,
         isBinary,
-        defaults: {  // TODO rename to response
+        defaults: {
           headers,
           body: result.Body
         },
@@ -201,6 +221,7 @@ module.exports = async function read({Bucket, Key, IfNoneMatch, config}) {
         response,
         result,
         Key,
+        isProxy,
         config
       })
 
@@ -241,7 +262,7 @@ let path = require('path')
 /**
  * Normalizes response shape
  */
-module.exports = function normalizeResponse ({response, result, Key, config}) {
+module.exports = function normalizeResponse ({response, result, Key, isProxy, config}) {
   let noCache = [
     'text/html',
     'application/json',
@@ -260,7 +281,9 @@ module.exports = function normalizeResponse ({response, result, Key, config}) {
 
   // Set caching headers
   let neverCache = noCache.some(n => contentType.includes(n))
-  if (neverCache)
+  if (config.cacheControl)
+    response.headers['Cache-Control'] = config.cacheControl
+  else if (neverCache)
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
   else
     response.headers['Cache-Control'] = 'max-age=86400'
@@ -274,6 +297,7 @@ module.exports = function normalizeResponse ({response, result, Key, config}) {
     response.headers['Content-Type'] = response.headers['content-type']
     delete response.headers['content-type']
   }
+  // Probably unable to be set via this code path, but normalize jic
   if (response.headers['cache-control']) {
     response.headers['Cache-Control'] = response.headers['cache-control']
     delete response.headers['cache-control']
@@ -283,7 +307,7 @@ module.exports = function normalizeResponse ({response, result, Key, config}) {
   let notArcProxy = !process.env.ARC_HTTP || process.env.ARC_HTTP === 'aws'
   let isArcFive = notArcSix && notArcProxy
   let isHTML = response.headers['Content-Type'].includes('text/html')
-  if (isArcFive && isHTML) {
+  if (isArcFive && isHTML && !isProxy) {
     // This is a deprecated code path that may be removed when Arc 5 exits LTS status
     // Only return string bodies for certain types, and ONLY in Arc 5
     response.body = Buffer.from(response.body).toString()
@@ -307,7 +331,7 @@ let util = require('util')
 let readFile = util.promisify(fs.readFile)
 let transform = require('./transform')
 
-module.exports = async function sandbox({Key, config}) {
+module.exports = async function sandbox({Key, isProxy, config}) {
   // additive change... after 6.x we can rely on this env var in sandbox
   let basePath = process.env.ARC_SANDBOX_PATH_TO_STATIC || path.join(process.cwd(), '..', '..', '..', 'public')
 
@@ -319,7 +343,7 @@ module.exports = async function sandbox({Key, config}) {
 
   try {
     if (!fs.existsSync(filePath))
-      throw ReferenceError(`${filePath} not found`)
+      throw ReferenceError(`NoSuchKey: ${filePath} not found`)
 
     let body = await readFile(filePath)
     let type = mime.contentType(path.extname(Key))
@@ -339,6 +363,7 @@ module.exports = async function sandbox({Key, config}) {
     response = normalizeResponse({
       response,
       Key,
+      isProxy,
       config
     })
 
@@ -353,13 +378,17 @@ module.exports = async function sandbox({Key, config}) {
       let body = await readFile(http404, {encoding: 'utf8'})
       return {headers, statusCode:404, body}
     }
-    let err = `
-      <h1>${e.name}</h1>
-      <pre>${e.code}</pre>
+    let statusCode = e.message.startsWith('NoSuchKey')
+      ? 404
+      : 500
+    let body = `
+      <h1>${e.message}</h1>
+      <h2>${e.name}</h2>
+      ${e.code ? `<pre>${e.code}</pre>` : ''}
       <p>${e.message}</p>
       <pre>${e.stack}</pre>
     `
-    return {headers, body:err}
+    return {headers, statusCode, body}
   }
 }
 
