@@ -147,12 +147,29 @@ module.exports = function proxyPublic(config={}) {
 
 },{"./read":4}],4:[function(require,module,exports){
 let binaryTypes = require('../helpers/binary-types')
+let fs = require('fs')
+let {join} = require('path')
+let templatizeResponse = require('./templatize')
 let normalizeResponse = require('./response')
 let mime = require('mime-types')
 let path = require('path')
 let aws = require('aws-sdk')
 let transform = require('./transform')
 let sandbox = require('./sandbox')
+
+// Try to hit disk to load the static manifest as little as possible
+let assets
+let staticManifest = join(process.cwd(), 'node_modules', '@architect', 'shared', 'static.json')
+if (assets === false) {
+  null /*noop*/
+}
+else if (fs.existsSync(staticManifest) && !assets) {
+  let file = fs.readFileSync(staticManifest).toString()
+  assets = JSON.parse(file)
+}
+else {
+  assets = false
+}
 
 /**
  * arc.proxy.read
@@ -171,15 +188,26 @@ module.exports = async function read({Bucket, Key, IfNoneMatch, isProxy, config}
   // early exit if we're running in the sandbox
   let local = process.env.NODE_ENV === 'testing' || process.env.ARC_LOCAL
   if (local)
-    return await sandbox({Key, isProxy, config})
+    return await sandbox({Key, isProxy, config, assets})
 
   let headers = {}
   let response = {}
 
   try {
-    // if client sends if-none-match, use it in s3 getObject params
+    // If client sends if-none-match, use it in S3 getObject params
     let matchedETag = false
     let s3 = new aws.S3
+
+    // If the static asset manifest has the key, use that, otherwise fall back to the original Key
+    let contentType = mime.contentType(path.extname(Key))
+    let capture = [
+      'text/html',
+      'application/json',
+      // markdown?
+    ]
+    let isCaptured = capture.some(type => contentType.includes(type))
+    if (assets && assets[Key] && isCaptured)
+      Key = assets[Key]
 
     let options = {Bucket, Key}
     if (IfNoneMatch)
@@ -203,7 +231,7 @@ module.exports = async function read({Bucket, Key, IfNoneMatch, isProxy, config}
 
     // No ETag found, return the blob
     if (!matchedETag) {
-      let isBinary = binaryTypes.some(type => result.ContentType.includes(type) || mime.contentType(path.extname(Key)).includes(type))
+      let isBinary = binaryTypes.some(type => result.ContentType.includes(type) || contentType.includes(type))
 
       // Transform first to allow for any proxy plugin mutations
       response = transform({
@@ -214,6 +242,13 @@ module.exports = async function read({Bucket, Key, IfNoneMatch, isProxy, config}
           headers,
           body: result.Body
         },
+      })
+
+      // Handle templating
+      response = templatizeResponse({
+        isBinary,
+        assets,
+        response
       })
 
       // Normalize response
@@ -255,7 +290,7 @@ module.exports = async function read({Bucket, Key, IfNoneMatch, isProxy, config}
   }
 }
 
-},{"../helpers/binary-types":1,"./response":5,"./sandbox":6,"./transform":7,"aws-sdk":"aws-sdk","mime-types":10,"path":undefined}],5:[function(require,module,exports){
+},{"../helpers/binary-types":1,"./response":5,"./sandbox":6,"./templatize":7,"./transform":8,"aws-sdk":"aws-sdk","fs":undefined,"mime-types":11,"path":undefined}],5:[function(require,module,exports){
 let mime = require('mime-types')
 let path = require('path')
 
@@ -285,6 +320,8 @@ module.exports = function normalizeResponse ({response, result, Key, isProxy, co
     response.headers['Cache-Control'] = config.cacheControl
   else if (neverCache)
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+  else if (result && result.CacheControl)
+    response.headers['Cache-Control'] = result.CacheControl
   else
     response.headers['Cache-Control'] = 'max-age=86400'
 
@@ -321,8 +358,9 @@ module.exports = function normalizeResponse ({response, result, Key, isProxy, co
   return response
 }
 
-},{"mime-types":10,"path":undefined}],6:[function(require,module,exports){
+},{"mime-types":11,"path":undefined}],6:[function(require,module,exports){
 let binaryTypes = require('../helpers/binary-types')
+let templatizeResponse = require('./templatize')
 let normalizeResponse = require('./response')
 let mime = require('mime-types')
 let path = require('path')
@@ -331,9 +369,16 @@ let util = require('util')
 let readFile = util.promisify(fs.readFile)
 let transform = require('./transform')
 
-module.exports = async function sandbox({Key, isProxy, config}) {
+module.exports = async function sandbox({Key, isProxy, config, assets}) {
   // additive change... after 6.x we can rely on this env var in sandbox
   let basePath = process.env.ARC_SANDBOX_PATH_TO_STATIC || path.join(process.cwd(), '..', '..', '..', 'public')
+
+  // Double check for assets in case we're running as proxy at root in sandbox
+  let staticManifest = path.join(basePath, 'static.json')
+  if (!assets && fs.existsSync(staticManifest)) {
+    let file = fs.readFileSync(staticManifest).toString()
+    assets = JSON.parse(file)
+  }
 
   // Look up the blob
   // assuming we're running from a lambda in src/**/* OR from vendored node_modules/@architect/sandbox
@@ -359,6 +404,14 @@ module.exports = async function sandbox({Key, isProxy, config}) {
       }
     })
 
+    // Handle templating
+    response = templatizeResponse({
+      isBinary,
+      assets,
+      response,
+      isSandbox: true
+    })
+
     // Normalize response
     response = normalizeResponse({
       response,
@@ -371,7 +424,10 @@ module.exports = async function sandbox({Key, isProxy, config}) {
   }
   catch(e) {
     // look for public/404.html
-    let headers = {'content-type': 'text/html; charset=utf8;'}
+    let headers = {
+      'Content-Type': 'text/html; charset=utf8;',
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+    }
     let http404 = path.join(basePath, '404.html')
     let exists = fs.existsSync(http404)
     if (exists) {
@@ -392,7 +448,31 @@ module.exports = async function sandbox({Key, isProxy, config}) {
   }
 }
 
-},{"../helpers/binary-types":1,"./response":5,"./transform":7,"fs":undefined,"mime-types":10,"path":undefined,"util":undefined}],7:[function(require,module,exports){
+},{"../helpers/binary-types":1,"./response":5,"./templatize":7,"./transform":8,"fs":undefined,"mime-types":11,"path":undefined,"util":undefined}],7:[function(require,module,exports){
+module.exports = function templatizeResponse ({isBinary, assets, response, isSandbox=false}) {
+  // Bail early
+  if (isBinary || !assets) {
+    return response
+  }
+  else {
+    // Find: ${STATIC('path/filename.ext')}
+    //   or: ${arc.static('path/filename.ext')}
+    let static = /\${(STATIC|arc\.static)\(.*\)}/g
+    // Maybe stringify jic previous steps passed a buffer; perhaps we can remove this step if/when proxy plugins is retired
+    let body = response.body instanceof Buffer ? Buffer.from(response.body).toString() : response.body
+    response.body = body.replace(static, function fingerprint(match) {
+      let start = match.startsWith(`\${STATIC(`) ? 10 : 14
+      let Key = match.slice(start, match.length-3)
+      if (assets[Key] && !isSandbox)
+        Key = assets[Key]
+      return Key
+    })
+    response.body = Buffer.from(response.body) // Re-enbufferize
+    return response
+  }
+}
+
+},{}],8:[function(require,module,exports){
 /**
  * transform reduces {headers, body} with given plugins
  *
@@ -418,7 +498,7 @@ module.exports = function transform({Key, config, isBinary, defaults}) {
   }
 }
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 module.exports={
   "application/1d-interleaved-parityfec": {
     "source": "iana"
@@ -8254,7 +8334,7 @@ module.exports={
   }
 }
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 /*!
  * mime-db
  * Copyright(c) 2014 Jonathan Ong
@@ -8267,7 +8347,7 @@ module.exports={
 
 module.exports = require('./db.json')
 
-},{"./db.json":8}],10:[function(require,module,exports){
+},{"./db.json":9}],11:[function(require,module,exports){
 /*!
  * mime-types
  * Copyright(c) 2014 Jonathan Ong
@@ -8457,5 +8537,5 @@ function populateMaps (extensions, types) {
   })
 }
 
-},{"mime-db":9,"path":undefined}]},{},[2])(2)
+},{"mime-db":10,"path":undefined}]},{},[2])(2)
 });
