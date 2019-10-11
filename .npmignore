@@ -11,4 +11,5 @@ changelog.md
 codecov.yaml
 contributing.md
 coverage/
+scripts/
 test/
