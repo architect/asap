@@ -55,6 +55,7 @@ series([
   // Rewrite packages
   callback => {
     package.version = newVersion
+    package.devDependencies['@architect/functions'] = newVersion
     fs.writeFileSync(packageFile, JSON.stringify(package,null,2))
     packageLock.version = newVersion
     fs.writeFileSync(packageLockFile, JSON.stringify(packageLock,null,2))

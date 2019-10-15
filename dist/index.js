@@ -1,5 +1,105 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.proxy = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 /**
+ * HTTP error response generator and template
+ */
+module.exports = {
+  httpError,
+  proxyConfig: proxyConfig()
+}
+
+function proxyConfig () {
+  let title = 'Index not found'
+  let message = `No static asset bucket or <code>get /</code> function found in your project. Possible solutions:<br?
+<ul>
+  <li>Add <code>@static</code> to your project manifest</li>
+  <li>Add <code>get /</code> to the <code>@http</code> pragma of your project manifest</li>
+  <li>Manually specify an S3 bucket (containing an <code>index.html</code> file) with the <code>ARC_STATIC_BUCKET</code> env var</li>
+  <li>If using <code>arc.http.proxy</code>, pass in a valid config object</li>
+</ul>
+<a href="https://arc.codes/primitives/static" target="_blank">Learn more</a>`
+  return httpError({title, message})
+}
+
+function httpError ({statusCode=502, title='Unknown error', message=''}) {
+  title = title === 'Error'
+    ? `${statusCode} error`
+    : `${statusCode} error: ${title}`
+  return {
+    statusCode,
+    headers: {'Content-Type': 'text/html; charset=utf8;'},
+    body: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    code {
+      font-size: 1.25rem;
+      color: #00c26e;
+    }
+    .max-width-320 {
+      max-width: 20rem;
+    }
+    .margin-left-8 {
+      margin-left: 0.5rem;
+    }
+    .margin-bottom-16 {
+      margin-bottom: 1rem;
+    }
+    .margin-bottom-8 {
+      margin-bottom: 0.5rem;
+    }
+    .padding-32 {
+      padding: 2rem;
+    }
+    .padding-top-16 {
+      padding-top: 1rem;
+    }
+    a, a:hover {
+      color: #333;
+    }
+    p, li {
+      padding-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body class="padding-32">
+  <div>
+    <div class="margin-left-8">
+      <div class="margin-bottom-16">
+        <h1 class="margin-bottom-16">
+          ${title}
+        </h1>
+        <p>
+          ${message}
+        </p>
+      </div>
+      <div class="padding-top-16">
+        <p>
+          View Architect documentation at:
+        </p>
+        <a href="https://arc.codes">https://arc.codes</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+`
+  }
+}
+
+},{}],2:[function(require,module,exports){
+/**
  * Common binary MIME types
  */
 module.exports = [
@@ -59,14 +159,15 @@ module.exports = [
   'application/x-zip',
   'application/zip'
 ]
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 const GetIndexDefaultHandler = require('./public')
 
 // Bundler index + defaults
 exports.handler = GetIndexDefaultHandler({spa: true})
 
-},{"./public":3}],3:[function(require,module,exports){
+},{"./public":4}],4:[function(require,module,exports){
 let read = require('./read')
+let errors = require('../errors')
 
 /**
  * arc.proxy.public
@@ -93,7 +194,9 @@ module.exports = function proxyPublic(config={}) {
       : configBucket && configBucket['staging']
     // Ok, all that out of the way, let's set the actual bucket, eh?
     let Bucket = process.env.ARC_STATIC_BUCKET || bucketSetting
-    if (!Bucket) throw Error('Bucket must be configured, use ARC_STATIC_BUCKET or config object')
+    if (!Bucket) {
+      return errors.proxyConfig
+    }
     let Key // resolved below
 
     // Allow unsetting of SPA mode with ARC_STATIC_SPA
@@ -145,8 +248,9 @@ module.exports = function proxyPublic(config={}) {
   }
 }
 
-},{"./read":4}],4:[function(require,module,exports){
+},{"../errors":1,"./read":5}],5:[function(require,module,exports){
 let binaryTypes = require('../helpers/binary-types')
+let {httpError} = require('../errors')
 let fs = require('fs')
 let {join} = require('path')
 let templatizeResponse = require('./templatize')
@@ -278,19 +382,18 @@ module.exports = async function read({Bucket, Key, IfNoneMatch, isProxy, config}
       return {headers, statusCode: 404, body: 'File not found'}
     }*/
     // final err fallback
-    return {
-      statusCode: e.name === 'NoSuchKey'? 404 : 500,
-      headers: {'content-type': 'text/html; charset=utf8;'},
-      body: `
-        <h1>${e.name === 'NoSuchKey'? 'Not Found' : e.name}</h1>
-        <p>${e.message}</p>
-        <pre>${e.stack}</pre>
-      `
-    }
+    let notFound = e.name === 'NoSuchKey'
+    let statusCode = notFound ? 404 : 500
+    let title = notFound ? 'Not Found' : e.name
+    let message = `
+      ${e.message}<br>
+      <pre>${e.stack}</pre>
+    `
+    return httpError({statusCode, title, message})
   }
 }
 
-},{"../helpers/binary-types":1,"./response":5,"./sandbox":6,"./templatize":7,"./transform":8,"aws-sdk":"aws-sdk","fs":undefined,"mime-types":11,"path":undefined}],5:[function(require,module,exports){
+},{"../errors":1,"../helpers/binary-types":2,"./response":6,"./sandbox":7,"./templatize":8,"./transform":9,"aws-sdk":"aws-sdk","fs":undefined,"mime-types":12,"path":undefined}],6:[function(require,module,exports){
 let mime = require('mime-types')
 let path = require('path')
 
@@ -358,8 +461,9 @@ module.exports = function normalizeResponse ({response, result, Key, isProxy, co
   return response
 }
 
-},{"mime-types":11,"path":undefined}],6:[function(require,module,exports){
+},{"mime-types":12,"path":undefined}],7:[function(require,module,exports){
 let binaryTypes = require('../helpers/binary-types')
+let {httpError} = require('../errors')
 let templatizeResponse = require('./templatize')
 let normalizeResponse = require('./response')
 let mime = require('mime-types')
@@ -434,21 +538,19 @@ module.exports = async function sandbox({Key, isProxy, config, assets}) {
       let body = await readFile(http404, {encoding: 'utf8'})
       return {headers, statusCode:404, body}
     }
-    let statusCode = e.message.startsWith('NoSuchKey')
-      ? 404
-      : 500
-    let body = `
-      <h1>${e.message}</h1>
-      <h2>${e.name}</h2>
-      ${e.code ? `<pre>${e.code}</pre>` : ''}
-      <p>${e.message}</p>
+    let notFound = e.message.startsWith('NoSuchKey')
+    let statusCode = notFound ? 404 : 500
+    let title = notFound ? 'Not found' : e.name
+    let message = `
+      ${e.message}<br>
       <pre>${e.stack}</pre>
     `
+    let body = httpError({statusCode, title, message}).body
     return {headers, statusCode, body}
   }
 }
 
-},{"../helpers/binary-types":1,"./response":5,"./templatize":7,"./transform":8,"fs":undefined,"mime-types":11,"path":undefined,"util":undefined}],7:[function(require,module,exports){
+},{"../errors":1,"../helpers/binary-types":2,"./response":6,"./templatize":8,"./transform":9,"fs":undefined,"mime-types":12,"path":undefined,"util":undefined}],8:[function(require,module,exports){
 module.exports = function templatizeResponse ({isBinary, assets, response, isSandbox=false}) {
   // Bail early
   if (isBinary || !assets) {
@@ -472,7 +574,7 @@ module.exports = function templatizeResponse ({isBinary, assets, response, isSan
   }
 }
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /**
  * transform reduces {headers, body} with given plugins
  *
@@ -498,7 +600,7 @@ module.exports = function transform({Key, config, isBinary, defaults}) {
   }
 }
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports={
   "application/1d-interleaved-parityfec": {
     "source": "iana"
@@ -8334,7 +8436,7 @@ module.exports={
   }
 }
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /*!
  * mime-db
  * Copyright(c) 2014 Jonathan Ong
@@ -8347,7 +8449,7 @@ module.exports={
 
 module.exports = require('./db.json')
 
-},{"./db.json":9}],11:[function(require,module,exports){
+},{"./db.json":10}],12:[function(require,module,exports){
 /*!
  * mime-types
  * Copyright(c) 2014 Jonathan Ong
@@ -8537,5 +8639,5 @@ function populateMaps (extensions, types) {
   })
 }
 
-},{"mime-db":10,"path":undefined}]},{},[2])(2)
+},{"mime-db":11,"path":undefined}]},{},[3])(3)
 });
