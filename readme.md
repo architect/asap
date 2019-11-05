@@ -1,6 +1,9 @@
 # @architect/http-proxy
 
-## Architect HTTP proxy distribution, extracted from @architect/functions (arc.http.proxy)
+>  Architect HTTP proxy distribution, extracted from @architect/functions (arc.http.proxy)
+
+[![GitHub CI status](https://github.com/architect/http-proxy/workflows/Node%20CI/badge.svg)](https://github.com/architect/http-proxy/actions?query=workflow%3A%22Node+CI%22)
+
 
 ### Updating the HTTP proxy:
 
@@ -11,4 +14,4 @@
     - Updates and writes `package[-lock].json`
     - Creates a git commit + git tag (similar to `npm version...`)
 
-Once `npm run build`, if there's an update, simply `git push` and `npm publish`. (It's already tagged, no need to run `npm version`.)
+Run `npm run build`; if there's an update, simply `git push`, and CI/CD will publish the updated package.

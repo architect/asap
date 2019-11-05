@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "scripts/build",
-    "bundle": "browserify node_modules/@architect/functions/src/http/proxy/arc-default-get-index.js --node --external aws-sdk --standalone proxy > dist/index.js"
+    "bundle": "browserify node_modules/@architect/functions/src/http/proxy/arc-default-get-index.js --node --external aws-sdk --standalone proxy > dist/index.js",
+    "rc": "npm version prerelease --preid RC"
   },
   "repository": {
     "type": "git",
