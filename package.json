@@ -1,6 +1,6 @@
 {
   "name": "@architect/http-proxy",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "description": "Architect HTTP proxy distribution, extracted from @architect/functions (arc.http.proxy)",
   "main": "dist/index.js",
   "scripts": {
