@@ -60,7 +60,7 @@ series([
   // Tag git
   callback => {
     console.log('Adding commit and git tag')
-    let cmd = `git commit -am'${newVersion}' && git tag -a ${newVersion} -m ${newVersion}`
+    let cmd = `git commit -am'${newVersion}' && git tag -a v${newVersion} -m ${newVersion}`
     let result = exec(cmd, { shell:true })
     console.log(result.toString())
     callback()
