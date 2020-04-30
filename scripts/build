@@ -10,10 +10,7 @@ let series = require('run-series')
 let packageFile = join(__dirname, '..', 'package.json')
 let package = require(packageFile)
 let currentVersion = package.version
-// package-lock.json
-let packageLockFile = join(__dirname, '..', 'package-lock.json')
-let packageLock // to be saved later
-let newVersion  // ditto
+let newVersion
 
 series([
   // Init
@@ -26,7 +23,7 @@ series([
   // Install @arc/functions
   callback => {
     console.log('Installing @architect/functions@latest...')
-    let cmd = 'npm i @architect/functions@latest'
+    let cmd = 'npm i @architect/functions@latest --save-dev'
     let result = exec(cmd, {shell:true})
     console.log(result.toString())
     callback()
@@ -34,8 +31,8 @@ series([
 
   // Compare versions
   callback => {
-    packageLock = JSON.parse(fs.readFileSync(join(__dirname, '..', 'package-lock.json')).toString())
-    newVersion = packageLock.dependencies['@architect/functions'].version
+    let updatedPackage = JSON.parse(fs.readFileSync(packageFile))
+    newVersion = updatedPackage.devDependencies['@architect/functions']
     console.log(`Found installed version ${newVersion}`)
     if (semver.gt(newVersion, currentVersion)) {
       callback()
@@ -52,21 +49,11 @@ series([
     callback()
   },
 
-  // Rewrite packages
-  callback => {
-    package.version = newVersion
-    package.devDependencies['@architect/functions'] = newVersion
-    fs.writeFileSync(packageFile, JSON.stringify(package,null,2))
-    packageLock.version = newVersion
-    fs.writeFileSync(packageLockFile, JSON.stringify(packageLock,null,2))
-    callback()
-  },
-
   // Tag git
   callback => {
     console.log('Adding commit and git tag')
     let cmd = `git commit -am'${newVersion}' && git tag -a ${newVersion} -m ${newVersion}`
-    let result = exec(cmd, {shell:true})
+    let result = exec(cmd, { shell:true })
     console.log(result.toString())
     callback()
   }
