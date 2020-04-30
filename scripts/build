@@ -10,6 +10,7 @@ let series = require('run-series')
 let packageFile = join(__dirname, '..', 'package.json')
 let package = require(packageFile)
 let currentVersion = package.version
+let updatedPackage
 let newVersion
 
 series([
@@ -31,7 +32,7 @@ series([
 
   // Compare versions
   callback => {
-    let updatedPackage = JSON.parse(fs.readFileSync(packageFile))
+    updatedPackage = JSON.parse(fs.readFileSync(packageFile))
     newVersion = updatedPackage.devDependencies['@architect/functions']
     console.log(`Found installed version ${newVersion}`)
     if (semver.gt(newVersion, currentVersion)) {
@@ -46,6 +47,13 @@ series([
     let cmd = 'npm run bundle'
     let result = exec(cmd, {shell:true})
     console.log(result.toString())
+    callback()
+  },
+
+  // Rewrite packages
+  callback => {
+    updatedPackage.version = newVersion
+    fs.writeFileSync(packageFile, JSON.stringify(updatedPackage,null,2))
     callback()
   },
 
