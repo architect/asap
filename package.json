@@ -33,9 +33,9 @@
   "devDependencies": {
     "@architect/functions": "3.8.0",
     "aws-sdk": "^2.563.0",
-    "browserify": "^16.5.0",
+    "browserify": "~16.5.1",
     "run-series": "^1.1.8",
-    "semver": "^7.0.0",
+    "semver": "~7.3.2",
     "tap-spec": "^5.0.0",
     "tape": "^4.11.0"
   }
