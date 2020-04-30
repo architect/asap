@@ -34,7 +34,7 @@ jobs:
         VER=`npm --version`; echo "npm ver:    $VER"
 
     - name: Install
-      run: npm install
+      run: npm i
 
     - name: Test
       run: npm test
@@ -73,7 +73,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: Install
-        run: npm ci
+        run: npm i
 
       # Publish to npm
       - name: Publish @RC to npm
