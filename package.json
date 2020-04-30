@@ -31,7 +31,7 @@
   "bugs": "https://github.com/architect/http-proxy/issues",
   "homepage": "https://github.com/architect/http-proxy#readme",
   "devDependencies": {
-    "@architect/functions": "3.8.0",
+    "@architect/functions": "3.9.0",
     "aws-sdk": "2.563.0",
     "browserify": "16.5.1",
     "run-series": "1.1.8",
