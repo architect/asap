@@ -165,7 +165,7 @@ module.exports = [
 },{}],3:[function(require,module,exports){
 // Bundler index + defaults
 const GetIndexDefaultHandler = require('./index.js')
-exports.handler = GetIndexDefaultHandler({ spa: true })
+exports.handler = GetIndexDefaultHandler.proxy({ spa: true })
 
 },{"./index.js":7}],4:[function(require,module,exports){
 let mime = require('mime-types')
