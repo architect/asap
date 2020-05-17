@@ -26,7 +26,10 @@ function httpError ({statusCode=502, title='Unknown error', message=''}) {
     : `${statusCode} error: ${title}`
   return {
     statusCode,
-    headers: {'Content-Type': 'text/html; charset=utf8;'},
+    headers: {
+      'Content-Type': 'text/html; charset=utf8;',
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+    },
     body: `
 <!DOCTYPE html>
 <html lang="en">
@@ -160,182 +163,554 @@ module.exports = [
   'application/zip'
 ]
 },{}],3:[function(require,module,exports){
-const GetIndexDefaultHandler = require('./public')
-
 // Bundler index + defaults
-exports.handler = GetIndexDefaultHandler({spa: true})
+const GetIndexDefaultHandler = require('./index.js')
+exports.handler = GetIndexDefaultHandler({ spa: true })
 
-},{"./public":4}],4:[function(require,module,exports){
+},{"./index.js":7}],4:[function(require,module,exports){
+let mime = require('mime-types')
+let path = require('path')
+
+/**
+ * Normalizes response shape
+ */
+module.exports = function normalizeResponse (params) {
+  let { response, result, Key, isProxy, config } = params
+
+  let noCache = [
+    'text/html',
+    'application/json',
+    'application/vnd.api+json'
+  ]
+  response.headers = response.headers || {}
+
+  // Establish Content-Type
+  let contentType =
+    response.headers['Content-Type'] || // Possibly get content-type passed via proxy plugins
+    response.headers['content-type'] || // ...
+    result && result.ContentType ||     // Fall back to what came down from S3's metadata
+    mime.contentType(path.extname(Key)) // Finally, fall back to the mime type database
+
+  // Set Content-Type
+  response.headers['Content-Type'] = contentType
+
+  // Set caching headers
+  let neverCache = noCache.some(n => contentType.includes(n))
+  if (config.cacheControl) {
+    response.headers['Cache-Control'] = config.cacheControl
+  }
+  else if (neverCache) {
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+  }
+  else if (result && result.CacheControl) {
+    response.headers['Cache-Control'] = result.CacheControl
+  }
+  else {
+    response.headers['Cache-Control'] = 'public, max-age=0, must-revalidate'
+  }
+
+  // Populate optional userland headers
+  if (config.headers) {
+    Object.keys(config.headers).forEach(h => response.headers[h] = config.headers[h])
+  }
+
+  // Normalize important common header casings to prevent dupes
+  if (response.headers['content-type']) {
+    response.headers['Content-Type'] = response.headers['content-type']
+    delete response.headers['content-type']
+  }
+  // Probably unable to be set via this code path, but normalize jic
+  if (response.headers['cache-control']) {
+    response.headers['Cache-Control'] = response.headers['cache-control']
+    delete response.headers['cache-control']
+  }
+
+  let notArcSix = !process.env.ARC_CLOUDFORMATION
+  let notArcProxy = !process.env.ARC_HTTP || process.env.ARC_HTTP === 'aws'
+  let isArcFive = notArcSix && notArcProxy
+  let isHTML = response.headers['Content-Type'].includes('text/html')
+  if (isArcFive && isHTML && !isProxy) {
+    // This is a deprecated code path that may be removed when Arc 5 exits LTS status
+    // Only return string bodies for certain types, and ONLY in Arc 5
+    response.body = Buffer.from(response.body).toString()
+    response.type = response.headers['Content-Type'] // Re-set type or it will fall back to JSON
+  }
+  else {
+    // Base64 everything else on the way out to enable text + binary support
+    response.body = Buffer.from(response.body).toString('base64')
+    response.isBase64Encoded = true
+  }
+  return response
+}
+
+},{"mime-types":14,"path":undefined}],5:[function(require,module,exports){
+module.exports = function templatizeResponse (params) {
+  let { isBinary, assets, response, isLocal=false } = params
+
+  // Bail early
+  if (isBinary || !assets) {
+    return response
+  }
+  else {
+    // Find: ${STATIC('path/filename.ext')}
+    //   or: ${arc.static('path/filename.ext')}
+    let static = /\${(STATIC|arc\.static)\(.*\)}/g
+    // Maybe stringify jic previous steps passed a buffer; perhaps we can remove this step if/when proxy plugins is retired
+    let body = response.body instanceof Buffer ? Buffer.from(response.body).toString() : response.body
+    response.body = body.replace(static, function fingerprint(match) {
+      let start = match.startsWith(`\${STATIC(`) ? 10 : 14
+      let Key = match.slice(start, match.length-3)
+      if (assets[Key] && !isLocal) {
+        Key = assets[Key]
+      }
+      return Key
+    })
+    response.body = Buffer.from(response.body) // Re-enbufferize
+    return response
+  }
+}
+
+},{}],6:[function(require,module,exports){
+/**
+ * transform reduces {headers, body} with given plugins
+ *
+ * @param args - arguments obj
+ * @param args.Key - the origin S3 bucket Key requested
+ * @param args.config - the entire arc.proxy.public config obj
+ * @param args.defaults - the default {headers, body} in the transform pipeline
+ */
+module.exports = function transform({Key, config, isBinary, defaults}) {
+  let filetype = Key.split('.').pop()
+  let plugins = config.plugins? config.plugins[filetype] || [] : []
+  // early return if there's no processing to do
+  if (plugins.length === 0 || isBinary)
+    return defaults
+  else {
+    defaults.body = defaults.body.toString() // Convert non-binary files to strings for mutation
+    // otherwise walk the supplied plugins
+    return plugins.reduce(function run(response, plugin) {
+      /* eslint global-require: 'off' */
+      let transformer = typeof plugin === 'function'? plugin: require(plugin)
+      return transformer(Key, response, config)
+    }, defaults)
+  }
+}
+
+},{}],7:[function(require,module,exports){
 let read = require('./read')
 let errors = require('../errors')
 
 /**
- * arc.proxy.public
+ * arc.http.proxy
+ *
+ * Primary interface for reading static assets out of S3
  *
  * @param config - object, for configuration
- * @param config.spa - boolean, forces index.html no matter the folder depth
- * @param config.plugins - object, configure proxy-plugin-* transforms per file extension
- * @param config.alias - object, map of root rel urls to map to fully qualified root rel urls
+ * @param config.alias - object, map of root rel URLs to map to fully qualified root rel URLs
+ * @param config.assets - object, map of local, unfingerprinted filenames to fingerprinted filenames
  * @param config.bucket - object, {staging, production} override the s3 bucket names
  * @param config.bucket.staging - object, {staging, production} override the s3 bucket names
  * @param config.bucket.production - object, {staging, production} override the s3 bucket names
  * @param config.bucket.folder - string, bucket folder
  * @param config.cacheControl - string, set a custom Cache-Control max-age header value
+ * @param config.plugins - object, configure proxy-plugin-* transforms per file extension
+ * @param config.spa - boolean, forces index.html no matter the folder depth
  *
  * @returns HTTPLambda - an HTTP Lambda function that proxies calls to S3
  */
-module.exports = function proxyPublic(config={}) {
-  return async function proxy(req) {
+function proxy (config={}) {
+  return async function httpProxy (req) {
 
-    let isProduction = process.env.NODE_ENV === 'production'
+    let { ARC_STATIC_BUCKET, ARC_STATIC_FOLDER, ARC_STATIC_SPA, NODE_ENV } = process.env
+
+    let isProduction = NODE_ENV === 'production'
+    let path = req.path || req.rawPath
+    let isFolder = path.split('/').pop().indexOf('.') === -1
+    let Key // Assigned below
+
+    /**
+     * Bucket config
+     */
     let configBucket = config.bucket
     let bucketSetting = isProduction
       ? configBucket && configBucket['production']
       : configBucket && configBucket['staging']
     // Ok, all that out of the way, let's set the actual bucket, eh?
-    let Bucket = process.env.ARC_STATIC_BUCKET || bucketSetting
+    let Bucket = ARC_STATIC_BUCKET || bucketSetting
     if (!Bucket) {
       return errors.proxyConfig
     }
-    let Key // resolved below
 
-    // Allow unsetting of SPA mode with ARC_STATIC_SPA
-    let spa = process.env.ARC_STATIC_SPA === 'false'
+    /**
+     * Configure SPA + set up the file to be requested
+     */
+    let spa = ARC_STATIC_SPA === 'false'
       ? false
       : config && config.spa
-
-    let path = req.path || req.rawPath
-
     if (!spa) config.spa = false
     if (spa) {
-      // if spa force index.html
-      let isFolder = path.split('/').pop().indexOf('.') === -1
-      Key = isFolder? 'index.html' : path.substring(1)
+      // If SPA: force index.html
+      Key = isFolder ? 'index.html' : path.substring(1)
     }
     else {
-      // return index.html for root…otherwise passthru the path minus leading slash
+      // Return index.html for root, otherwise pass the path
       let last = path.split('/').filter(Boolean).pop()
-      let isFile = last? last.includes('.') : false
+      let isFile = last ? last.includes('.') : false
       let isRoot = path === '/'
 
-      Key = isRoot? 'index.html' : path.substring(1)
+      Key = isRoot? 'index.html' : path.substring(1) // Always remove leading slash
 
-      // append default index.html to requests to folder paths
+      // Append default index.html to requests to folder paths
       if (isRoot === false && isFile === false) {
         Key = `${Key.replace(/\/$/, '')}/index.html`
       }
     }
 
-    // allow alias override of Key
+    /**
+     * Alias
+     *   Allows a Key to be manually overridden
+     */
     let aliasing = config && config.alias && config.alias.hasOwnProperty(path)
     if (aliasing) {
-      Key = config.alias[path].substring(1) // remove leading /
+      Key = config.alias[path].substring(1) // Always remove leading slash
     }
 
-    // allow bucket folder prefix
-    let folder = process.env.ARC_STATIC_FOLDER || configBucket && configBucket.folder
+    /**
+     * Folder prefix
+     *   Enables a bucket folder at root to be specified
+     */
+    let folder = ARC_STATIC_FOLDER || configBucket && configBucket.folder
     if (folder) {
       Key = `${folder}/${Key}`
     }
 
-    // strip staging/ and production/ from req urls
-    if (Key.startsWith('staging/') || Key.startsWith('production/') || Key.startsWith('_static/')) {
+    /**
+     * Strip `staging/` and `production/` from HTTP API req urls
+     */
+    if (Key.startsWith('staging/') ||
+        Key.startsWith('production/') ||
+        Key.startsWith('_static/')) {
       Key = Key.replace('staging/', '').replace('production/', '').replace('_static/', '')
     }
 
-    // normalize if-none-match header to lower case; it differs between environments
+    // Normalize if-none-match header to lower case; it differs between environments
     let find = k => k.toLowerCase() === 'if-none-match'
     let IfNoneMatch = req.headers && req.headers[Object.keys(req.headers).find(find)]
 
     // Ensure response shape is correct for proxy SPA responses
     let isProxy = req.resource === '/{proxy+}' || !!req.rawPath
 
-    return await read({Key, Bucket, IfNoneMatch, isProxy, config})
+    return await read({ Key, Bucket, IfNoneMatch, isFolder, isProxy, config })
   }
 }
 
-},{"../errors":1,"./read":5}],5:[function(require,module,exports){
-let binaryTypes = require('../helpers/binary-types')
-let {httpError} = require('../errors')
-let fs = require('fs')
-let {join} = require('path')
-let templatizeResponse = require('./templatize')
-let normalizeResponse = require('./response')
-let mime = require('mime-types')
-let path = require('path')
-let aws = require('aws-sdk')
-let transform = require('./transform')
-let sandbox = require('./sandbox')
+module.exports = {
+  proxy,  // Default
+  read    // Read a specific file
+}
 
-// Try to hit disk to load the static manifest as little as possible
-let assets
-let staticManifest = join(process.cwd(), 'node_modules', '@architect', 'shared', 'static.json')
-if (assets === false) {
-  null /*noop*/
-}
-else if (fs.existsSync(staticManifest) && !assets) {
-  let file = fs.readFileSync(staticManifest).toString()
-  assets = JSON.parse(file)
-}
-else {
-  assets = false
-}
+},{"../errors":1,"./read":11}],8:[function(require,module,exports){
+let { existsSync, readFileSync } = require('fs')
+let { extname, join, sep } = require('path')
+let mime = require('mime-types')
+let crypto = require('crypto')
+
+let binaryTypes = require('../../helpers/binary-types')
+let { httpError } = require('../../errors')
+let transform = require('../format/transform') // Soon to be deprecated
+let templatizeResponse = require('../format/templatize')
+let normalizeResponse = require('../format/response')
+let pretty = require('./_pretty')
 
 /**
- * arc.proxy.read
+ * arc.http.proxy.read
  *
- * Reads a file from s3 resolving an HTTP Lambda friendly payload
+ * Reads a file from the local filesystem, resolving an HTTP Lambda friendly payload
+ *
+ * @param {Object} params
+ * @param {String} params.Key
+ * @param {String} params.IfNoneMatch
+ * @param {String} params.isFolder
+ * @param {String} params.isProxy
+ * @param {Object} params.config
+ * @returns {Object} {statusCode, headers, body}
+ */
+module.exports = async function readLocal (params) {
+
+  let { ARC_SANDBOX_PATH_TO_STATIC, ARC_STATIC_FOLDER } = process.env
+  let { Key, IfNoneMatch, isFolder, isProxy, config } = params
+  let headers = {}
+  let response = {}
+
+  // Unlike S3, handle basePath and assets inside the function as Sandbox is long-lived
+  let staticAssets
+  // After 6.x we can rely on this env var in sandbox
+  let basePath = ARC_SANDBOX_PATH_TO_STATIC || join(process.cwd(), '..', '..', '..', 'public')
+  let staticManifest = join(basePath, 'static.json')
+  if (existsSync(staticManifest)) {
+    staticAssets = JSON.parse(readFileSync(staticManifest))
+  }
+  let assets = config.assets || staticAssets
+
+  // Look up the blob
+  // Assume we're running from a lambda in src/**/* OR from vendored node_modules/@architect/sandbox
+  let filePath = join(basePath, Key)
+  // Denormalize static folder for local paths (not something we'd do in S3)
+  let staticFolder = ARC_STATIC_FOLDER
+  if (filePath.includes(staticFolder)) {
+    filePath = filePath.replace(`${staticFolder}${sep}`, '')
+  }
+
+  try {
+    // If client sends If-None-Match, use it in S3 getObject params
+    let matchedETag = false
+
+    // If the static asset manifest has the key, use that, otherwise fall back to the original Key
+    let contentType = mime.contentType(extname(Key))
+
+    if (!existsSync(filePath)) {
+      let err = ReferenceError(`NoSuchKey: ${filePath} not found`)
+      err.name = 'NoSuchKey'
+      throw err
+    }
+
+    let body = readFileSync(filePath)
+    let ETag = crypto.createHash('sha256').update(body).digest('hex')
+    let result = {
+      ContentType: contentType,
+      ETag
+    }
+    if (IfNoneMatch === ETag) {
+      matchedETag = true
+      headers.ETag = IfNoneMatch
+      response = {
+        statusCode: 304,
+        headers
+      }
+    }
+
+    // No ETag found, return the blob
+    if (!matchedETag) {
+      let isBinary = binaryTypes.some(type => result.ContentType.includes(type) || contentType.includes(type))
+
+      // Transform first to allow for any proxy plugin mutations
+      response = transform({
+        Key,
+        config,
+        isBinary,
+        defaults: {
+          headers,
+          body
+        }
+      })
+
+      // Handle templating
+      response = templatizeResponse({
+        isBinary,
+        assets,
+        response,
+        isLocal: true
+      })
+
+      // Normalize response
+      response = normalizeResponse({
+        response,
+        result,
+        Key,
+        isProxy,
+        config
+      })
+
+      // Add ETag
+      response.headers.ETag = result.ETag
+    }
+
+    if (!response.statusCode) {
+      response.statusCode = 200
+    }
+
+    return response
+  }
+  catch (err) {
+    let notFound = err.name === 'NoSuchKey'
+    if (notFound) {
+      return await pretty({ Key: filePath, config, isFolder })
+    }
+    else {
+      let title = err.name
+      let message = `
+        ${err.message}<br>
+        <pre>${err.stack}</pre>
+      `
+      return httpError({ statusCode: 500, title, message })
+    }
+  }
+}
+
+},{"../../errors":1,"../../helpers/binary-types":2,"../format/response":4,"../format/templatize":5,"../format/transform":6,"./_pretty":9,"crypto":undefined,"fs":undefined,"mime-types":14,"path":undefined}],9:[function(require,module,exports){
+let aws = require('aws-sdk')
+let { existsSync, readFileSync } = require('fs')
+// let { join } = require('path')
+let { httpError } = require('../../errors')
+let { ARC_STATIC_FOLDER } = process.env
+
+/**
+ * Peek into a dir without a trailing slash to see if it's got an index.html file
+ *   If not, look for a custom 404.html
+ *   Finally, return the default 404
+ */
+module.exports = async function prettyS3 (params) {
+  let { Bucket, Key, config, headers, isFolder } = params
+  let { ARC_LOCAL, NODE_ENV } = process.env
+  let local = NODE_ENV === 'testing' || ARC_LOCAL
+  let s3 = new aws.S3
+
+  async function getLocal (file) {
+    if (!existsSync(file)) {
+      let err = ReferenceError(`NoSuchKey: ${file} not found`)
+      err.name = 'NoSuchKey'
+      throw err
+    }
+    else return {
+      Body: readFileSync(file)
+    }
+  }
+
+  async function getS3 (file) {
+    return await s3.getObject({ Bucket, Key: file }).promise()
+  }
+
+  async function get (file) {
+    let getter = local ? getLocal : getS3
+    try {
+      return await getter(file)
+    }
+    catch (err) {
+      if (err.name === 'NoSuchKey') {
+        err.statusCode = 404
+        return err
+      }
+      else {
+        err.statusCode = 500
+        return err
+      }
+    }
+  }
+
+  /**
+   * Enable pretty urls
+   *   Peek into a dir without trailing slash to see if it contains index.html
+   */
+  if (isFolder && !Key.endsWith('/')) {
+    let peek = `${Key}/index.html`
+    let result = await get(peek)
+    if (result.Body) {
+      let body = result.Body.toString()
+      return { headers, statusCode: 200, body }
+    }
+  }
+
+  /**
+   * Enable custom 404s
+   *   Check to see if user defined a custom 404 page
+   */
+  let configBucketFolder = config.bucket && config.bucket.folder ? config.bucket.folder : false
+  let folder = ARC_STATIC_FOLDER || configBucketFolder
+  let notFound = folder ? `${folder}/404.html` : '404.html'
+  let result = await get(notFound)
+  if (result.Body) {
+    let body = result.Body.toString()
+    return {
+      headers: {
+        'Content-Type': 'text/html; charset=utf8;',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+      },
+      statusCode: 404,
+      body
+    }
+  }
+  else {
+    let err = result
+    let { statusCode } = err
+    let title = err.name
+    let message = `
+      ${err.message } <pre><b>${ Key }</b></pre><br>
+      <pre>${err.stack}</pre>
+    `
+    return httpError({ statusCode, title, message })
+  }
+}
+
+},{"../../errors":1,"aws-sdk":"aws-sdk","fs":undefined}],10:[function(require,module,exports){
+let { existsSync, readFileSync } = require('fs')
+let { extname, join } = require('path')
+let mime = require('mime-types')
+let aws = require('aws-sdk')
+
+let binaryTypes = require('../../helpers/binary-types')
+let { httpError } = require('../../errors')
+let transform = require('../format/transform') // Soon to be deprecated
+let templatizeResponse = require('../format/templatize')
+let normalizeResponse = require('../format/response')
+let pretty = require('./_pretty')
+
+/**
+ * arc.http.proxy.read
+ *
+ * Reads a file from S3, resolving an HTTP Lambda friendly payload
  *
  * @param {Object} params
  * @param {String} params.Key
  * @param {String} params.Bucket
  * @param {String} params.IfNoneMatch
+ * @param {String} params.isFolder
+ * @param {String} params.isProxy
  * @param {Object} params.config
  * @returns {Object} {statusCode, headers, body}
  */
-module.exports = async function read({Bucket, Key, IfNoneMatch, isProxy, config}) {
+module.exports = async function readS3 (params) {
 
-  // early exit if we're running in the sandbox
-  let local = process.env.NODE_ENV === 'testing' || process.env.ARC_LOCAL
-  if (local)
-    return await sandbox({Key, isProxy, config, assets})
-
+  let { Bucket, Key, IfNoneMatch, isFolder, isProxy, config } = params
+  let assets = config.assets || staticAssets
   let headers = {}
   let response = {}
 
   try {
-    // If client sends if-none-match, use it in S3 getObject params
+    // If client sends If-None-Match, use it in S3 getObject params
     let matchedETag = false
     let s3 = new aws.S3
 
-    // If the static asset manifest has the key, use that, otherwise fall back to the original Key
-    let contentType = mime.contentType(path.extname(Key))
+    // Try to interpolate HTML/JSON requests to fingerprinted filenames
+    let contentType = mime.contentType(extname(Key))
     let capture = [
       'text/html',
-      'application/json',
-      // markdown?
+      'application/json'
     ]
     let isCaptured = capture.some(type => contentType.includes(type))
-    if (assets && assets[Key] && isCaptured)
+    if (assets && assets[Key] && isCaptured) {
+      // Not necessary to flag response formatter for anti-caching
+      // Those headers are already set in S3 file metadata
       Key = assets[Key]
+    }
 
-    let options = {Bucket, Key}
-    if (IfNoneMatch)
+    let options = { Bucket, Key }
+    if (IfNoneMatch) {
       options.IfNoneMatch = IfNoneMatch
+    }
 
-    let result = await s3.getObject(options).promise().catch(e => {
+    let result = await s3.getObject(options).promise().catch(err => {
       // ETag matches (getObject error code of NotModified), so don't transit the whole file
-      if (e.code === 'NotModified') {
+      if (err.code === 'NotModified') {
         matchedETag = true
         headers.ETag = IfNoneMatch
         response = {
           statusCode: 304,
-          headers,
+          headers
         }
       }
       else {
-        // important! rethrow the error do not swallow it
-        throw e
+        // Important: do not swallow this error otherwise!
+        throw err
       }
     })
 
@@ -377,251 +752,57 @@ module.exports = async function read({Bucket, Key, IfNoneMatch, isProxy, config}
       if (contentEncoding) response.headers['Content-Encoding'] = contentEncoding
     }
 
-    if (!response.statusCode)
+    if (!response.statusCode) {
       response.statusCode = 200
+    }
+
     return response
   }
-  catch(e) {
-    let notFound = e.name === 'NoSuchKey'
+  catch (err) {
+    let notFound = err.name === 'NoSuchKey'
     if (notFound) {
-      try {
-        let folder = process.env.ARC_STATIC_FOLDER || config.bucket && config.bucket.folder? config.bucket.folder : false
-        let notFound = folder? `${folder}/404.html` : '404.html'
-        let s3 = new aws.S3
-        let result = await s3.getObject({ Bucket, Key: notFound }).promise()
-        let body = result.Body.toString()
-        return {headers, statusCode: 404, body}
-      }
-      catch(err) {
-        let statusCode = err.name === 'NoSuchKey'? 404 : 500
-        let title = err.name
-        let message = `
-          ${err.message } <pre><b>${ Key }</b></pre><br>
-          <pre>${err.stack}</pre>
-        `
-        return httpError({statusCode, title, message})
-      }
+      return await pretty({ Bucket, Key, config, headers, isFolder })
     }
     else {
-      let title = e.name
+      let title = err.name
       let message = `
-        ${e.message}<br>
-        <pre>${e.stack}</pre>
+        ${err.message}<br>
+        <pre>${err.stack}</pre>
       `
-      return httpError({statusCode: 500, title, message})
+      return httpError({ statusCode: 500, title, message })
     }
   }
 }
-
-},{"../errors":1,"../helpers/binary-types":2,"./response":6,"./sandbox":7,"./templatize":8,"./transform":9,"aws-sdk":"aws-sdk","fs":undefined,"mime-types":12,"path":undefined}],6:[function(require,module,exports){
-let mime = require('mime-types')
-let path = require('path')
 
 /**
- * Normalizes response shape
+ * Fingerprinting manifest
+ *   Load the manifest, try to hit the disk as infrequently as possible across invocations
  */
-module.exports = function normalizeResponse ({response, result, Key, isProxy, config}) {
-  let noCache = [
-    'text/html',
-    'application/json',
-    'application/vnd.api+json'
-  ]
-  response.headers = response.headers || {}
-
-  // Establish Content-Type
-  let contentType =
-    response.headers['Content-Type'] || // Possibly get content-type passed via proxy plugins
-    response.headers['content-type'] || // ...
-    result && result.ContentType ||     // Fall back to what came down from S3's metadata
-    mime.contentType(path.extname(Key)) // Finally, fall back to the mime type database
-
-  // Set Content-Type
-  response.headers['Content-Type'] = contentType
-
-  // Set caching headers
-  let neverCache = noCache.some(n => contentType.includes(n))
-  if (config.cacheControl)
-    response.headers['Cache-Control'] = config.cacheControl
-  else if (neverCache)
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
-  else if (result && result.CacheControl)
-    response.headers['Cache-Control'] = result.CacheControl
-  else
-    response.headers['Cache-Control'] = 'max-age=86400'
-
-  // Populate optional userland headers
-  if (config.headers)
-    Object.keys(config.headers).forEach(h => response.headers[h] = config.headers[h])
-
-  // Normalize important common header casings to prevent dupes
-  if (response.headers['content-type']) {
-    response.headers['Content-Type'] = response.headers['content-type']
-    delete response.headers['content-type']
-  }
-  // Probably unable to be set via this code path, but normalize jic
-  if (response.headers['cache-control']) {
-    response.headers['Cache-Control'] = response.headers['cache-control']
-    delete response.headers['cache-control']
-  }
-
-  let notArcSix = !process.env.ARC_CLOUDFORMATION
-  let notArcProxy = !process.env.ARC_HTTP || process.env.ARC_HTTP === 'aws'
-  let isArcFive = notArcSix && notArcProxy
-  let isHTML = response.headers['Content-Type'].includes('text/html')
-  if (isArcFive && isHTML && !isProxy) {
-    // This is a deprecated code path that may be removed when Arc 5 exits LTS status
-    // Only return string bodies for certain types, and ONLY in Arc 5
-    response.body = Buffer.from(response.body).toString()
-    response.type = response.headers['Content-Type'] // Re-set type or it will fall back to JSON
-  }
-  else {
-    // Base64 everything else on the way out to enable text + binary support
-    response.body = Buffer.from(response.body).toString('base64')
-    response.isBase64Encoded = true
-  }
-  return response
+let staticAssets
+let staticManifest = join(process.cwd(), 'node_modules', '@architect', 'shared', 'static.json')
+if (staticAssets === false) {
+  null /*noop*/
+}
+else if (existsSync(staticManifest) && !staticAssets) {
+  staticAssets = JSON.parse(readFileSync(staticManifest))
+}
+else {
+  staticAssets = false
 }
 
-},{"mime-types":12,"path":undefined}],7:[function(require,module,exports){
-let binaryTypes = require('../helpers/binary-types')
-let {httpError} = require('../errors')
-let templatizeResponse = require('./templatize')
-let normalizeResponse = require('./response')
-let mime = require('mime-types')
-let path = require('path')
-let fs = require('fs')
-let util = require('util')
-let readFile = util.promisify(fs.readFile)
-let transform = require('./transform')
+},{"../../errors":1,"../../helpers/binary-types":2,"../format/response":4,"../format/templatize":5,"../format/transform":6,"./_pretty":9,"aws-sdk":"aws-sdk","fs":undefined,"mime-types":14,"path":undefined}],11:[function(require,module,exports){
+let readLocal = require('./_local')
+let readS3 = require('./_s3')
 
-module.exports = async function sandbox({Key, isProxy, config, assets}) {
-  // additive change... after 6.x we can rely on this env var in sandbox
-  let basePath = process.env.ARC_SANDBOX_PATH_TO_STATIC || path.join(process.cwd(), '..', '..', '..', 'public')
-
-  // Double check for assets in case we're running as proxy at root in sandbox
-  let staticManifest = path.join(basePath, 'static.json')
-  if (!assets && fs.existsSync(staticManifest)) {
-    let file = fs.readFileSync(staticManifest).toString()
-    assets = JSON.parse(file)
-  }
-
-  // Look up the blob
-  // assuming we're running from a lambda in src/**/* OR from vendored node_modules/@architect/sandbox
-  let filePath = path.join(basePath, Key)
-  let staticFolder = process.env.ARC_STATIC_FOLDER
-  if (filePath.includes(staticFolder)) filePath = filePath.replace(`${staticFolder}${path.sep}`, '')
-
-  try {
-    if (!fs.existsSync(filePath))
-      throw ReferenceError(`NoSuchKey: ${filePath} not found`)
-
-    let body = await readFile(filePath)
-    let type = mime.contentType(path.extname(Key))
-    let isBinary = binaryTypes.some(t => type.includes(t))
-
-    let response = transform({
-      Key,
-      config,
-      isBinary,
-      defaults: {
-        headers: {'content-type': type},
-        body
-      }
-    })
-
-    // Handle templating
-    response = templatizeResponse({
-      isBinary,
-      assets,
-      response,
-      isSandbox: true
-    })
-
-    // Normalize response
-    response = normalizeResponse({
-      response,
-      Key,
-      isProxy,
-      config
-    })
-
-    return response
-  }
-  catch(e) {
-    // look for public/404.html
-    let headers = {
-      'Content-Type': 'text/html; charset=utf8;',
-      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
-    }
-    let http404 = path.join(basePath, '404.html')
-    let exists = fs.existsSync(http404)
-    if (exists) {
-      let body = await readFile(http404, {encoding: 'utf8'})
-      return {headers, statusCode:404, body}
-    }
-    let notFound = e.message.startsWith('NoSuchKey')
-    let statusCode = notFound ? 404 : 500
-    let title = notFound ? 'Not found' : e.name
-    let message = `
-      ${e.message}<br>
-      <pre>${e.stack}</pre>
-    `
-    let body = httpError({statusCode, title, message}).body
-    return {headers, statusCode, body}
-  }
+function read () {
+  let { ARC_LOCAL, NODE_ENV } = process.env
+  let local = NODE_ENV === 'testing' || ARC_LOCAL
+  return local ? readLocal : readS3
 }
 
-},{"../errors":1,"../helpers/binary-types":2,"./response":6,"./templatize":8,"./transform":9,"fs":undefined,"mime-types":12,"path":undefined,"util":undefined}],8:[function(require,module,exports){
-module.exports = function templatizeResponse ({isBinary, assets, response, isSandbox=false}) {
-  // Bail early
-  if (isBinary || !assets) {
-    return response
-  }
-  else {
-    // Find: ${STATIC('path/filename.ext')}
-    //   or: ${arc.static('path/filename.ext')}
-    let static = /\${(STATIC|arc\.static)\(.*\)}/g
-    // Maybe stringify jic previous steps passed a buffer; perhaps we can remove this step if/when proxy plugins is retired
-    let body = response.body instanceof Buffer ? Buffer.from(response.body).toString() : response.body
-    response.body = body.replace(static, function fingerprint(match) {
-      let start = match.startsWith(`\${STATIC(`) ? 10 : 14
-      let Key = match.slice(start, match.length-3)
-      if (assets[Key] && !isSandbox)
-        Key = assets[Key]
-      return Key
-    })
-    response.body = Buffer.from(response.body) // Re-enbufferize
-    return response
-  }
-}
+module.exports = read()
 
-},{}],9:[function(require,module,exports){
-/**
- * transform reduces {headers, body} with given plugins
- *
- * @param args - arguments obj
- * @param args.Key - the origin S3 bucket Key requested
- * @param args.config - the entire arc.proxy.public config obj
- * @param args.defaults - the default {headers, body} in the transform pipeline
- */
-module.exports = function transform({Key, config, isBinary, defaults}) {
-  let filetype = Key.split('.').pop()
-  let plugins = config.plugins? config.plugins[filetype] || [] : []
-  // early return if there's no processing to do
-  if (plugins.length === 0 || isBinary)
-    return defaults
-  else {
-    defaults.body = defaults.body.toString() // Convert non-binary files to strings for mutation
-    // otherwise walk the supplied plugins
-    return plugins.reduce(function run(response, plugin) {
-      /* eslint global-require: 'off' */
-      let transformer = typeof plugin === 'function'? plugin: require(plugin)
-      return transformer(Key, response, config)
-    }, defaults)
-  }
-}
-
-},{}],10:[function(require,module,exports){
+},{"./_local":8,"./_s3":10}],12:[function(require,module,exports){
 module.exports={
   "application/1d-interleaved-parityfec": {
     "source": "iana"
@@ -8799,7 +8980,7 @@ module.exports={
   }
 }
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 /*!
  * mime-db
  * Copyright(c) 2014 Jonathan Ong
@@ -8812,7 +8993,7 @@ module.exports={
 
 module.exports = require('./db.json')
 
-},{"./db.json":10}],12:[function(require,module,exports){
+},{"./db.json":12}],14:[function(require,module,exports){
 /*!
  * mime-types
  * Copyright(c) 2014 Jonathan Ong
@@ -9002,5 +9183,5 @@ function populateMaps (extensions, types) {
   })
 }
 
-},{"mime-db":11,"path":undefined}]},{},[3])(3)
+},{"mime-db":13,"path":undefined}]},{},[3])(3)
 });
