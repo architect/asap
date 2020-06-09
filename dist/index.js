@@ -248,20 +248,24 @@ module.exports = function templatizeResponse (params) {
   let { isBinary, assets, response, isLocal=false } = params
 
   // Bail early
-  if (isBinary || !assets) {
+  if (isBinary) {
     return response
   }
   else {
     // Find: ${STATIC('path/filename.ext')}
     //   or: ${arc.static('path/filename.ext')}
-    let static = /\${(STATIC|arc\.static)\(.*\)}/g
+    let staticRegex = /\${(STATIC|arc\.static)\(.*\)}/g
     // Maybe stringify jic previous steps passed a buffer; perhaps we can remove this step if/when proxy plugins is retired
     let body = response.body instanceof Buffer ? Buffer.from(response.body).toString() : response.body
-    response.body = body.replace(static, function fingerprint(match) {
+    response.body = body.replace(staticRegex, function fingerprint(match) {
       let start = match.startsWith(`\${STATIC(`) ? 10 : 14
       let Key = match.slice(start, match.length-3)
-      if (assets[Key] && !isLocal) {
-        Key = assets[Key]
+      // Normalize around no leading slash for static manifest lookups
+      let startsWithSlash = Key.startsWith('/')
+      let lookup = startsWithSlash ? Key.substr(1) : Key
+      if (assets && assets[lookup] && !isLocal) {
+        Key = assets[lookup]
+        Key = startsWithSlash ? `/${Key}` : Key
       }
       return Key
     })
@@ -321,7 +325,7 @@ let errors = require('../errors')
 function proxy (config={}) {
   return async function httpProxy (req) {
 
-    let { ARC_STATIC_BUCKET, ARC_STATIC_FOLDER, ARC_STATIC_SPA, NODE_ENV } = process.env
+    let { ARC_STATIC_BUCKET, ARC_STATIC_SPA, NODE_ENV } = process.env
 
     let isProduction = NODE_ENV === 'production'
     let path = req.path || req.rawPath
@@ -373,15 +377,6 @@ function proxy (config={}) {
     let aliasing = config && config.alias && config.alias.hasOwnProperty(path)
     if (aliasing) {
       Key = config.alias[path].substring(1) // Always remove leading slash
-    }
-
-    /**
-     * Folder prefix
-     *   Enables a bucket folder at root to be specified
-     */
-    let folder = ARC_STATIC_FOLDER || configBucket && configBucket.folder
-    if (folder) {
-      Key = `${folder}/${Key}`
     }
 
     /**
@@ -437,7 +432,7 @@ let pretty = require('./_pretty')
  */
 module.exports = async function readLocal (params) {
 
-  let { ARC_SANDBOX_PATH_TO_STATIC, ARC_STATIC_FOLDER } = process.env
+  let { ARC_SANDBOX_PATH_TO_STATIC, ARC_STATIC_PREFIX, ARC_STATIC_FOLDER } = process.env
   let { Key, IfNoneMatch, isFolder, isProxy, config } = params
   let headers = {}
   let response = {}
@@ -456,9 +451,9 @@ module.exports = async function readLocal (params) {
   // Assume we're running from a lambda in src/**/* OR from vendored node_modules/@architect/sandbox
   let filePath = join(basePath, Key)
   // Denormalize static folder for local paths (not something we'd do in S3)
-  let staticFolder = ARC_STATIC_FOLDER
-  if (filePath.includes(staticFolder)) {
-    filePath = filePath.replace(`${staticFolder}${sep}`, '')
+  let staticPrefix = ARC_STATIC_PREFIX || ARC_STATIC_FOLDER
+  if (filePath.includes(staticPrefix)) {
+    filePath = filePath.replace(`${staticPrefix}${sep}`, '')
   }
 
   try {
@@ -552,18 +547,26 @@ let aws = require('aws-sdk')
 let { existsSync, readFileSync } = require('fs')
 // let { join } = require('path')
 let { httpError } = require('../../errors')
-let { ARC_STATIC_FOLDER } = process.env
 
 /**
  * Peek into a dir without a trailing slash to see if it's got an index.html file
  *   If not, look for a custom 404.html
  *   Finally, return the default 404
  */
-module.exports = async function prettyS3 (params) {
-  let { Bucket, Key, config, headers, isFolder } = params
+module.exports = async function pretty (params) {
+  let { Bucket, Key, assets, headers, isFolder, prefix } = params
   let { ARC_LOCAL, NODE_ENV } = process.env
   let local = NODE_ENV === 'testing' || ARC_LOCAL
   let s3 = new aws.S3
+
+  function getKey (Key) {
+    let lookup = Key.replace(prefix + '/', '')
+    if (assets && assets[lookup]) {
+      Key = assets[lookup]
+      Key = prefix ? `${prefix}/${Key}` : Key
+    }
+    return Key
+  }
 
   async function getLocal (file) {
     if (!existsSync(file)) {
@@ -576,8 +579,8 @@ module.exports = async function prettyS3 (params) {
     }
   }
 
-  async function getS3 (file) {
-    return await s3.getObject({ Bucket, Key: file }).promise()
+  async function getS3 (Key) {
+    return await s3.getObject({ Bucket, Key }).promise()
   }
 
   async function get (file) {
@@ -602,7 +605,7 @@ module.exports = async function prettyS3 (params) {
    *   Peek into a dir without trailing slash to see if it contains index.html
    */
   if (isFolder && !Key.endsWith('/')) {
-    let peek = `${Key}/index.html`
+    let peek = getKey(`${Key}/index.html`)
     let result = await get(peek)
     if (result.Body) {
       let body = result.Body.toString()
@@ -614,9 +617,7 @@ module.exports = async function prettyS3 (params) {
    * Enable custom 404s
    *   Check to see if user defined a custom 404 page
    */
-  let configBucketFolder = config.bucket && config.bucket.folder ? config.bucket.folder : false
-  let folder = ARC_STATIC_FOLDER || configBucketFolder
-  let notFound = folder ? `${folder}/404.html` : '404.html'
+  let notFound = getKey(`404.html`)
   let result = await get(notFound)
   if (result.Body) {
     let body = result.Body.toString()
@@ -671,6 +672,8 @@ let pretty = require('./_pretty')
 module.exports = async function readS3 (params) {
 
   let { Bucket, Key, IfNoneMatch, isFolder, isProxy, config } = params
+  let { ARC_STATIC_PREFIX, ARC_STATIC_FOLDER } = process.env
+  let prefix = ARC_STATIC_PREFIX || ARC_STATIC_FOLDER || config.bucket && config.bucket.folder
   let assets = config.assets || staticAssets
   let headers = {}
   let response = {}
@@ -682,15 +685,20 @@ module.exports = async function readS3 (params) {
 
     // Try to interpolate HTML/JSON requests to fingerprinted filenames
     let contentType = mime.contentType(extname(Key))
-    let capture = [
-      'text/html',
-      'application/json'
-    ]
+    let capture = [ 'text/html', 'application/json' ]
     let isCaptured = capture.some(type => contentType.includes(type))
     if (assets && assets[Key] && isCaptured) {
       // Not necessary to flag response formatter for anti-caching
       // Those headers are already set in S3 file metadata
       Key = assets[Key]
+    }
+
+    /**
+     * Folder prefix
+     *   Enables a bucket folder at root to be specified
+     */
+    if (prefix) {
+      Key = `${prefix}/${Key}`
     }
 
     let options = { Bucket, Key }
@@ -727,7 +735,7 @@ module.exports = async function readS3 (params) {
         defaults: {
           headers,
           body: result.Body
-        },
+        }
       })
 
       // Handle templating
@@ -761,7 +769,7 @@ module.exports = async function readS3 (params) {
   catch (err) {
     let notFound = err.name === 'NoSuchKey'
     if (notFound) {
-      return await pretty({ Bucket, Key, config, headers, isFolder })
+      return await pretty({ Bucket, Key, assets, headers, isFolder, prefix })
     }
     else {
       let title = err.name
