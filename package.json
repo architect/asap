@@ -13,6 +13,9 @@
     "type": "git",
     "url": "git+https://github.com/architect/http-proxy.git"
   },
+  "engines": {
+    "node": ">=10"
+  },
   "keywords": [
     "aws",
     "lambda",
@@ -37,6 +40,6 @@
     "run-series": "1.1.8",
     "semver": "7.3.2",
     "tap-spec": "5.0.0",
-    "tape": "4.11.0"
+    "tape": "5.0.1"
   }
 }
