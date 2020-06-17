@@ -473,9 +473,7 @@ module.exports = async function readLocal (params) {
     let contentType = mime.contentType(extname(Key))
 
     if (!existsSync(filePath)) {
-      let err = ReferenceError(`NoSuchKey: ${filePath} not found`)
-      err.name = 'NoSuchKey'
-      throw err
+      return await pretty({ Key: filePath, config, isFolder })
     }
 
     let body = readFileSync(filePath)
@@ -554,7 +552,7 @@ module.exports = async function readLocal (params) {
 },{"../../errors":1,"../../helpers/binary-types":2,"../format/response":4,"../format/templatize":5,"../format/transform":6,"./_pretty":9,"crypto":undefined,"fs":undefined,"mime-types":14,"path":undefined}],9:[function(require,module,exports){
 let aws = require('aws-sdk')
 let { existsSync, readFileSync } = require('fs')
-// let { join } = require('path')
+let { join } = require('path')
 let { httpError } = require('../../errors')
 
 /**
@@ -564,7 +562,7 @@ let { httpError } = require('../../errors')
  */
 module.exports = async function pretty (params) {
   let { Bucket, Key, assets, headers, isFolder, prefix } = params
-  let { ARC_LOCAL, NODE_ENV } = process.env
+  let { ARC_LOCAL, ARC_SANDBOX_PATH_TO_STATIC, NODE_ENV } = process.env
   let local = NODE_ENV === 'testing' || ARC_LOCAL
   let s3 = new aws.S3
 
@@ -578,8 +576,12 @@ module.exports = async function pretty (params) {
   }
 
   async function getLocal (file) {
+    let basepath = ARC_SANDBOX_PATH_TO_STATIC
+    if (!file.startsWith(basepath)) {
+      file = join(basepath, file)
+    }
     if (!existsSync(file)) {
-      let err = ReferenceError(`NoSuchKey: ${file} not found`)
+      let err = ReferenceError(`NoSuchKey: ${Key} not found`)
       err.name = 'NoSuchKey'
       throw err
     }
@@ -651,7 +653,7 @@ module.exports = async function pretty (params) {
   }
 }
 
-},{"../../errors":1,"aws-sdk":"aws-sdk","fs":undefined}],10:[function(require,module,exports){
+},{"../../errors":1,"aws-sdk":"aws-sdk","fs":undefined,"path":undefined}],10:[function(require,module,exports){
 let { existsSync, readFileSync } = require('fs')
 let { extname, join } = require('path')
 let mime = require('mime-types')
