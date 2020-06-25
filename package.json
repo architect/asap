@@ -35,7 +35,7 @@
   "homepage": "https://github.com/architect/http-proxy#readme",
   "devDependencies": {
     "@architect/functions": "3.12.1",
-    "aws-sdk": "2.703.0",
+    "aws-sdk": "2.704.0",
     "browserify": "16.5.1",
     "run-series": "1.1.8",
     "semver": "7.3.2",
