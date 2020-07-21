@@ -17,15 +17,16 @@ series([
   // Init
   callback => {
     console.log(`Bundling HTTP proxy from @architect/functions`)
-    console.log(`Found @architect/functions version ${currentVersion}`)
+    console.log(`Previous @architect/functions version: ${currentVersion}`)
     callback()
   },
 
   // Install @arc/functions
   callback => {
-    console.log('Installing @architect/functions@latest...')
-    let cmd = 'npm i @architect/functions@RC --save-dev'
-    let result = exec(cmd, {shell:true})
+    let release = process.env.RC ? 'RC' : 'latest'
+    console.log(`Installing @architect/functions@${release}...`)
+    let cmd = `npm i @architect/functions@${release} --save-dev`
+    let result = exec(cmd, { shell: true })
     console.log(result.toString())
     callback()
   },
