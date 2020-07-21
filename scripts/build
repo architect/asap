@@ -24,7 +24,7 @@ series([
   // Install @arc/functions
   callback => {
     console.log('Installing @architect/functions@latest...')
-    let cmd = 'npm i @architect/functions@latest --save-dev'
+    let cmd = 'npm i @architect/functions@RC --save-dev'
     let result = exec(cmd, {shell:true})
     console.log(result.toString())
     callback()

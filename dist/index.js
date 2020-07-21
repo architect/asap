@@ -167,15 +167,43 @@ module.exports = [
 const GetIndexDefaultHandler = require('./index.js')
 exports.handler = GetIndexDefaultHandler.proxy({ spa: true })
 
-},{"./index.js":7}],4:[function(require,module,exports){
+},{"./index.js":8}],4:[function(require,module,exports){
+let {
+  gzipSync,
+  gunzipSync,
+  brotliCompressSync,
+  brotliDecompressSync,
+  deflateSync,
+  inflateSync,
+} = require('zlib')
+
+function compressor (direction, type, data) {
+  let compress = direction === 'compress'
+  let exec = {
+    gzip: compress ? gzipSync : gunzipSync,
+    br: compress ? brotliCompressSync : brotliDecompressSync,
+    deflate: compress ? deflateSync : inflateSync
+  }
+  if (!exec[type]) throw ReferenceError('Invalid compression type specified, must be gzip, br, or deflate')
+
+  return exec[type](data)
+}
+
+module.exports = {
+  compress: compressor.bind({}, 'compress'),
+  decompress: compressor.bind({}, 'decompress')
+}
+
+},{"zlib":undefined}],5:[function(require,module,exports){
 let mime = require('mime-types')
 let path = require('path')
+let { compress } = require('./compress')
 
 /**
  * Normalizes response shape
  */
 module.exports = function normalizeResponse (params) {
-  let { response, result, Key, isProxy, config } = params
+  let { response, result, Key, isProxy, contentEncoding, config } = params
 
   let noCache = [
     'text/html',
@@ -236,14 +264,22 @@ module.exports = function normalizeResponse (params) {
     response.type = response.headers['Content-Type'] // Re-set type or it will fall back to JSON
   }
   else {
+    if (contentEncoding) {
+      response.body = compress(contentEncoding, response.body)
+      response.headers['Content-Encoding'] = contentEncoding
+    }
     // Base64 everything else on the way out to enable text + binary support
     response.body = Buffer.from(response.body).toString('base64')
     response.isBase64Encoded = true
   }
+
+  // Add ETag
+  response.headers.ETag = result.ETag
+
   return response
 }
 
-},{"mime-types":14,"path":undefined}],5:[function(require,module,exports){
+},{"./compress":4,"mime-types":15,"path":undefined}],6:[function(require,module,exports){
 module.exports = function templatizeResponse (params) {
   let { isBinary, assets, response, isLocal=false } = params
 
@@ -256,7 +292,7 @@ module.exports = function templatizeResponse (params) {
     //   or: ${arc.static('path/filename.ext')}
     let staticRegex = /\${(STATIC|arc\.static)\(.*\)}/g
     // Maybe stringify jic previous steps passed a buffer; perhaps we can remove this step if/when proxy plugins is retired
-    let body = response.body instanceof Buffer ? Buffer.from(response.body).toString() : response.body
+    let body = response.body instanceof Buffer ? response.body.toString() : response.body
     response.body = body.replace(staticRegex, function fingerprint(match) {
       let start = match.startsWith(`\${STATIC(`) ? 10 : 14
       let Key = match.slice(start, match.length-3)
@@ -274,7 +310,7 @@ module.exports = function templatizeResponse (params) {
   }
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 /**
  * transform reduces {headers, body} with given plugins
  *
@@ -300,7 +336,7 @@ module.exports = function transform({Key, config, isBinary, defaults}) {
   }
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 let read = require('./read')
 let errors = require('../errors')
 
@@ -413,7 +449,7 @@ module.exports = {
   read    // Read a specific file
 }
 
-},{"../errors":1,"./read":11}],8:[function(require,module,exports){
+},{"../errors":1,"./read":12}],9:[function(require,module,exports){
 let { existsSync, readFileSync } = require('fs')
 let { extname, join, sep } = require('path')
 let mime = require('mime-types')
@@ -549,7 +585,7 @@ module.exports = async function readLocal (params) {
   }
 }
 
-},{"../../errors":1,"../../helpers/binary-types":2,"../format/response":4,"../format/templatize":5,"../format/transform":6,"./_pretty":9,"crypto":undefined,"fs":undefined,"mime-types":14,"path":undefined}],9:[function(require,module,exports){
+},{"../../errors":1,"../../helpers/binary-types":2,"../format/response":5,"../format/templatize":6,"../format/transform":7,"./_pretty":10,"crypto":undefined,"fs":undefined,"mime-types":15,"path":undefined}],10:[function(require,module,exports){
 let aws = require('aws-sdk')
 let { existsSync, readFileSync } = require('fs')
 let { join } = require('path')
@@ -653,7 +689,7 @@ module.exports = async function pretty (params) {
   }
 }
 
-},{"../../errors":1,"aws-sdk":"aws-sdk","fs":undefined,"path":undefined}],10:[function(require,module,exports){
+},{"../../errors":1,"aws-sdk":"aws-sdk","fs":undefined,"path":undefined}],11:[function(require,module,exports){
 let { existsSync, readFileSync } = require('fs')
 let { extname, join } = require('path')
 let mime = require('mime-types')
@@ -665,6 +701,7 @@ let transform = require('../format/transform') // Soon to be deprecated
 let templatizeResponse = require('../format/templatize')
 let normalizeResponse = require('../format/response')
 let pretty = require('./_pretty')
+let { decompress } = require('../format/compress')
 
 /**
  * arc.http.proxy.read
@@ -752,6 +789,10 @@ module.exports = async function readS3 (params) {
     // No ETag found, return the blob
     if (!matchedETag) {
       let contentEncoding = result.ContentEncoding
+      if (contentEncoding) {
+        result.Body = decompress(contentEncoding, result.Body)
+      }
+
       let isBinary = binaryTypes.some(type => result.ContentType.includes(type) || contentType.includes(type))
 
       // Transform first to allow for any proxy plugin mutations
@@ -778,13 +819,9 @@ module.exports = async function readS3 (params) {
         result,
         Key,
         isProxy,
+        contentEncoding,
         config
       })
-
-      // Add ETag
-      response.headers.ETag = result.ETag
-      // If encoded, add that too
-      if (contentEncoding) response.headers['Content-Encoding'] = contentEncoding
     }
 
     if (!response.statusCode) {
@@ -825,7 +862,7 @@ else {
   staticAssets = false
 }
 
-},{"../../errors":1,"../../helpers/binary-types":2,"../format/response":4,"../format/templatize":5,"../format/transform":6,"./_pretty":9,"aws-sdk":"aws-sdk","fs":undefined,"mime-types":14,"path":undefined}],11:[function(require,module,exports){
+},{"../../errors":1,"../../helpers/binary-types":2,"../format/compress":4,"../format/response":5,"../format/templatize":6,"../format/transform":7,"./_pretty":10,"aws-sdk":"aws-sdk","fs":undefined,"mime-types":15,"path":undefined}],12:[function(require,module,exports){
 let readLocal = require('./_local')
 let readS3 = require('./_s3')
 
@@ -837,7 +874,7 @@ function read () {
 
 module.exports = read()
 
-},{"./_local":8,"./_s3":10}],12:[function(require,module,exports){
+},{"./_local":9,"./_s3":11}],13:[function(require,module,exports){
 module.exports={
   "application/1d-interleaved-parityfec": {
     "source": "iana"
@@ -9015,7 +9052,7 @@ module.exports={
   }
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /*!
  * mime-db
  * Copyright(c) 2014 Jonathan Ong
@@ -9028,7 +9065,7 @@ module.exports={
 
 module.exports = require('./db.json')
 
-},{"./db.json":12}],14:[function(require,module,exports){
+},{"./db.json":13}],15:[function(require,module,exports){
 /*!
  * mime-types
  * Copyright(c) 2014 Jonathan Ong
@@ -9218,5 +9255,5 @@ function populateMaps (extensions, types) {
   })
 }
 
-},{"mime-db":13,"path":undefined}]},{},[3])(3)
+},{"mime-db":14,"path":undefined}]},{},[3])(3)
 });
