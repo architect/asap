@@ -1,6 +1,6 @@
 {
   "name": "@architect/http-proxy",
-  "version": "3.12.2",
+  "version": "3.12.3",
   "description": "Architect HTTP proxy distribution, extracted from @architect/functions (arc.http.proxy)",
   "main": "dist/index.js",
   "scripts": {
@@ -35,7 +35,7 @@
   "bugs": "https://github.com/architect/http-proxy/issues",
   "homepage": "https://github.com/architect/http-proxy#readme",
   "devDependencies": {
-    "@architect/functions": "3.12.2",
+    "@architect/functions": "3.12.3",
     "aws-sdk": "2.722.0",
     "browserify": "16.5.1",
     "run-series": "1.1.8",
