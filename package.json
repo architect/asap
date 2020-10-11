@@ -7,7 +7,7 @@
     "build": "scripts/build",
     "build:rc": "RC=true scripts/build",
     "bundle": "browserify node_modules/@architect/functions/src/http/proxy/arc-default-get-index.js --node --external aws-sdk --standalone proxy > dist/index.js",
-    "test": "tape test/*-test.js | tap-spec",
+    "test": "cross-env tape test/*-test.js | tap-spec",
     "rc": "npm version prerelease --preid RC"
   },
   "repository": {
@@ -16,6 +16,19 @@
   },
   "engines": {
     "node": ">=10"
+  },
+  "license": "Apache-2.0",
+  "bugs": "https://github.com/architect/http-proxy/issues",
+  "homepage": "https://github.com/architect/http-proxy#readme",
+  "devDependencies": {
+    "@architect/functions": "3.12.3",
+    "aws-sdk": "2.722.0",
+    "browserify": "16.5.1",
+    "cross-env": "7.0.2",
+    "run-series": "1.1.8",
+    "semver": "7.3.2",
+    "tap-spec": "5.0.0",
+    "tape": "5.0.1"
   },
   "keywords": [
     "aws",
@@ -30,17 +43,5 @@
     "sns",
     "api gateway",
     "framework"
-  ],
-  "license": "Apache-2.0",
-  "bugs": "https://github.com/architect/http-proxy/issues",
-  "homepage": "https://github.com/architect/http-proxy#readme",
-  "devDependencies": {
-    "@architect/functions": "3.12.3",
-    "aws-sdk": "2.722.0",
-    "browserify": "16.5.1",
-    "run-series": "1.1.8",
-    "semver": "7.3.2",
-    "tap-spec": "5.0.0",
-    "tape": "5.0.1"
-  }
+  ]
 }
