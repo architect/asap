@@ -1,6 +1,6 @@
 let test = require('tape')
-let {existsSync} = require('fs')
-let {join} = require('path')
+let { existsSync } = require('fs')
+let { join } = require('path')
 let dist = require('../dist')
 let package = require('../package.json')
 
