@@ -46,7 +46,7 @@ series([
   callback => {
     console.log(`Bundling version ${newVersion}`)
     let cmd = 'npm run bundle'
-    let result = exec(cmd, {shell:true})
+    let result = exec(cmd, { shell: true })
     console.log(result.toString())
     callback()
   },
@@ -54,7 +54,7 @@ series([
   // Rewrite packages
   callback => {
     updatedPackage.version = newVersion
-    fs.writeFileSync(packageFile, JSON.stringify(updatedPackage,null,2))
+    fs.writeFileSync(packageFile, JSON.stringify(updatedPackage, null, 2))
     callback()
   },
 
@@ -62,7 +62,7 @@ series([
   callback => {
     console.log('Adding commit and git tag')
     let cmd = `git commit -am'${newVersion}' && git tag -a v${newVersion} -m ${newVersion}`
-    let result = exec(cmd, { shell:true })
+    let result = exec(cmd, { shell: true })
     console.log(result.toString())
     callback()
   }

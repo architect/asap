@@ -4,10 +4,12 @@
   "description": "Architect HTTP proxy distribution, extracted from @architect/functions (arc.http.proxy)",
   "main": "dist/index.js",
   "scripts": {
-    "build": "scripts/build",
-    "build:rc": "RC=true scripts/build",
+    "build": "scripts/build.js",
+    "build:rc": "RC=true scripts/build.js",
     "bundle": "browserify node_modules/@architect/functions/src/http/proxy/arc-default-get-index.js --node --external aws-sdk --standalone proxy > dist/index.js",
-    "test": "tape test/*-test.js | tap-spec",
+    "lint": "eslint . --fix",
+    "test:unit": "cross-env tape test/*-test.js | tap-spec",
+    "test": "npm run lint && npm run test:unit",
     "rc": "npm version prerelease --preid RC"
   },
   "repository": {
@@ -16,6 +18,21 @@
   },
   "engines": {
     "node": ">=10"
+  },
+  "license": "Apache-2.0",
+  "bugs": "https://github.com/architect/http-proxy/issues",
+  "homepage": "https://github.com/architect/http-proxy#readme",
+  "devDependencies": {
+    "@architect/eslint-config": "1.0.0",
+    "@architect/functions": "3.12.3",
+    "aws-sdk": "2.722.0",
+    "browserify": "16.5.1",
+    "cross-env": "7.0.2",
+    "eslint": "7.11.0",
+    "run-series": "1.1.8",
+    "semver": "7.3.2",
+    "tap-spec": "5.0.0",
+    "tape": "5.0.1"
   },
   "keywords": [
     "aws",
@@ -31,16 +48,7 @@
     "api gateway",
     "framework"
   ],
-  "license": "Apache-2.0",
-  "bugs": "https://github.com/architect/http-proxy/issues",
-  "homepage": "https://github.com/architect/http-proxy#readme",
-  "devDependencies": {
-    "@architect/functions": "3.12.3",
-    "aws-sdk": "2.771.0",
-    "browserify": "17.0.0",
-    "run-series": "1.1.8",
-    "semver": "7.3.2",
-    "tap-spec": "5.0.0",
-    "tape": "5.0.1"
+  "eslintConfig": {
+    "extends": "@architect/eslint-config"
   }
 }
