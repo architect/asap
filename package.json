@@ -24,7 +24,7 @@
   "homepage": "https://github.com/architect/http-proxy#readme",
   "devDependencies": {
     "@architect/eslint-config": "1.0.0",
-    "@architect/functions": "3.12.3",
+    "@architect/functions": "3.13.3",
     "aws-sdk": "2.771.0",
     "browserify": "17.0.0",
     "cross-env": "7.0.2",
