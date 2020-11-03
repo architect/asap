@@ -25,7 +25,7 @@
   "devDependencies": {
     "@architect/eslint-config": "1.0.0",
     "@architect/functions": "3.12.3",
-    "aws-sdk": "2.783.0",
+    "aws-sdk": "2.784.0",
     "browserify": "17.0.0",
     "cross-env": "7.0.2",
     "eslint": "7.11.0",
