@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-let exec = require('child_process').execSync
-let fs = require('fs')
-let join = require('path').join
+let { execSync: exec } = require('child_process')
+let { readFileSync, writeFileSync } = require('fs')
+let { join } = require('path')
 let semver = require('semver')
 let series = require('run-series')
 
@@ -33,7 +33,7 @@ series([
 
   // Compare versions
   callback => {
-    updatedPackage = JSON.parse(fs.readFileSync(packageFile))
+    updatedPackage = JSON.parse(readFileSync(packageFile))
     newVersion = updatedPackage.devDependencies['@architect/functions']
     console.log(`Found installed version ${newVersion}`)
     if (semver.gt(newVersion, currentVersion)) {
@@ -54,7 +54,7 @@ series([
   // Rewrite packages
   callback => {
     updatedPackage.version = newVersion
-    fs.writeFileSync(packageFile, JSON.stringify(updatedPackage, null, 2))
+    writeFileSync(packageFile, JSON.stringify(updatedPackage, null, 2))
     callback()
   },
 

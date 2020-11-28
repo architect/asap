@@ -1,11 +1,11 @@
-# @architect/http-proxy
+# @architect/asap
 
->  Architect HTTP proxy distribution, extracted from @architect/functions (arc.http.proxy)
+>  Architect Static Asset Proxy (ASAP) - a helpful library for Lambda-based static asset delivery
 
-[![GitHub CI status](https://github.com/architect/http-proxy/workflows/Node%20CI/badge.svg)](https://github.com/architect/http-proxy/actions?query=workflow%3A%22Node+CI%22)
+[![GitHub CI status](https://github.com/architect/asap/workflows/Node%20CI/badge.svg)](https://github.com/architect/asap/actions?query=workflow%3A%22Node+CI%22)
 
 
-### Updating the HTTP proxy:
+### Updating the ASAP build:
 
 - `npm run build`
   - Reinstalls `@architect/functions`
