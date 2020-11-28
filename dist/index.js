@@ -17,10 +17,10 @@ function proxyConfig () {
   <li>If using <code>arc.http.proxy</code>, pass in a valid config object</li>
 </ul>
 <a href="https://arc.codes/primitives/static" target="_blank">Learn more</a>`
-  return httpError({title, message})
+  return httpError({ title, message })
 }
 
-function httpError ({statusCode=502, title='Unknown error', message=''}) {
+function httpError ({ statusCode = 502, title = 'Unknown error', message = '' }) {
   title = title === 'Error'
     ? `${statusCode} error`
     : `${statusCode} error: ${title}`
@@ -162,6 +162,7 @@ module.exports = [
   'application/x-zip',
   'application/zip'
 ]
+
 },{}],3:[function(require,module,exports){
 // Bundler index + defaults
 const GetIndexDefaultHandler = require('./index.js')
@@ -281,7 +282,7 @@ module.exports = function normalizeResponse (params) {
 
 },{"./compress":4,"mime-types":15,"path":undefined}],6:[function(require,module,exports){
 module.exports = function templatizeResponse (params) {
-  let { isBinary, assets, response, isLocal=false } = params
+  let { isBinary, assets, response, isLocal = false } = params
 
   // Bail early
   if (isBinary) {
@@ -293,9 +294,9 @@ module.exports = function templatizeResponse (params) {
     let staticRegex = /\${(STATIC|arc\.static)\(.*\)}/g
     // Maybe stringify jic previous steps passed a buffer; perhaps we can remove this step if/when proxy plugins is retired
     let body = response.body instanceof Buffer ? response.body.toString() : response.body
-    response.body = body.replace(staticRegex, function fingerprint(match) {
+    response.body = body.replace(staticRegex, function fingerprint (match) {
       let start = match.startsWith(`\${STATIC(`) ? 10 : 14
-      let Key = match.slice(start, match.length-3)
+      let Key = match.slice(start, match.length - 3)
       // Normalize around no leading slash for static manifest lookups
       let startsWithSlash = Key.startsWith('/')
       let lookup = startsWithSlash ? Key.substr(1) : Key
@@ -319,18 +320,18 @@ module.exports = function templatizeResponse (params) {
  * @param args.config - the entire arc.proxy.public config obj
  * @param args.defaults - the default {headers, body} in the transform pipeline
  */
-module.exports = function transform({Key, config, isBinary, defaults}) {
+module.exports = function transform ({ Key, config, isBinary, defaults }) {
   let filetype = Key.split('.').pop()
-  let plugins = config.plugins? config.plugins[filetype] || [] : []
+  let plugins = config.plugins ? config.plugins[filetype] || [] : []
   // early return if there's no processing to do
   if (plugins.length === 0 || isBinary)
     return defaults
   else {
     defaults.body = defaults.body.toString() // Convert non-binary files to strings for mutation
     // otherwise walk the supplied plugins
-    return plugins.reduce(function run(response, plugin) {
+    return plugins.reduce(function run (response, plugin) {
       /* eslint global-require: 'off' */
-      let transformer = typeof plugin === 'function'? plugin: require(plugin)
+      let transformer = typeof plugin === 'function' ? plugin : require(plugin)
       return transformer(Key, response, config)
     }, defaults)
   }
@@ -358,7 +359,7 @@ let errors = require('../errors')
  *
  * @returns HTTPLambda - an HTTP Lambda function that proxies calls to S3
  */
-function proxy (config={}) {
+function proxy (config = {}) {
   return async function httpProxy (req) {
     let { ARC_STATIC_BUCKET, ARC_STATIC_SPA, NODE_ENV } = process.env
     let deprecated = req.version === undefined || req.version === '1.0'
@@ -398,7 +399,7 @@ function proxy (config={}) {
       let isFile = last ? last.includes('.') : false
       let isRoot = path === '/'
 
-      Key = isRoot? 'index.html' : path.substring(1) // Always remove leading slash
+      Key = isRoot ? 'index.html' : path.substring(1) // Always remove leading slash
 
       // Append default index.html to requests to folder paths
       if (isRoot === false && isFile === false) {
@@ -410,7 +411,7 @@ function proxy (config={}) {
      * Alias
      *   Allows a Key to be manually overridden
      */
-    let aliasing = config && config.alias && config.alias.hasOwnProperty(path)
+    let aliasing = config && config.alias && config.alias[path]
     if (aliasing) {
       Key = config.alias[path].substring(1) // Always remove leading slash
     }
@@ -611,6 +612,7 @@ module.exports = async function pretty (params) {
     return Key
   }
 
+  // eslint-disable-next-line
   async function getLocal (file) {
     let basepath = ARC_SANDBOX_PATH_TO_STATIC
     if (!file.startsWith(basepath)) {
@@ -682,7 +684,7 @@ module.exports = async function pretty (params) {
     let { statusCode } = err
     let title = err.name
     let message = `
-      ${err.message } <pre><b>${ Key }</b></pre><br>
+      ${err.message} <pre><b>${Key}</b></pre><br>
       <pre>${err.stack}</pre>
     `
     return httpError({ statusCode, title, message })
@@ -853,7 +855,7 @@ module.exports = async function readS3 (params) {
 let staticAssets
 let staticManifest = join(process.cwd(), 'node_modules', '@architect', 'shared', 'static.json')
 if (staticAssets === false) {
-  null /*noop*/
+  null /* noop*/
 }
 else if (existsSync(staticManifest) && !staticAssets) {
   staticAssets = JSON.parse(readFileSync(staticManifest))
