@@ -30,7 +30,7 @@
     "cross-env": "7.0.2",
     "eslint": "7.14.0",
     "run-series": "1.1.9",
-    "semver": "7.3.4",
+    "semver": "7.3.5",
     "tap-spec": "5.0.0",
     "tape": "5.2.2"
   },
