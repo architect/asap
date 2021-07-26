@@ -93,4 +93,3 @@ function asap (config = {}) {
 }
 
 module.exports = asap
-asap.read = read // Read a specific file

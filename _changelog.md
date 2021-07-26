@@ -24,6 +24,7 @@ ASAP comes into its own! 🎉
   - This is a super obscure case, but just a heads up!
 - Breaking change: removed support for Node.js 10.x (now EOL, and no longer available to created in AWS Lambda)
 - Breaking change: removed support for Architect 5 (and lower)
+- Breaking change: removed undocumented `asap.read` method
 - Breaking change: removed undocumented proxy plugin interface
 - Normalized headers to lowercase for full HTTP 2 compatibility
 - Updated dependencies
