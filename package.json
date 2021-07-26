@@ -1,38 +1,42 @@
 {
   "name": "@architect/asap",
-  "version": "3.13.8",
+  "version": "4.0.0-RC.0",
   "description": "Architect Static Asset Proxy (ASAP) - a helpful library for Lambda-based static asset delivery",
-  "main": "dist/index.js",
+  "main": "src/asap.js",
   "scripts": {
-    "build": "scripts/build.js",
-    "build:rc": "RC=true scripts/build.js",
-    "bundle": "browserify node_modules/@architect/functions/src/http/proxy/arc-default-get-index.js --node --external aws-sdk --standalone proxy > dist/index.js",
     "lint": "eslint . --fix",
-    "test:unit": "cross-env tape test/*-test.js | tap-spec",
-    "test": "npm run lint && npm run test:unit",
-    "rc": "npm version prerelease --preid RC"
+    "rc": "npm version prerelease --preid RC",
+    "test": "npm run lint && npm run coverage",
+    "test:unit": "cross-env tape 'test/unit/**/*-test.js' | tap-spec",
+    "coverage": "nyc --reporter=lcov --reporter=text npm run test:unit",
+    "vendor": "node scripts/generate-mime-files.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/architect/asap.git"
   },
   "engines": {
-    "node": ">=10"
+    "node": ">=12"
   },
   "license": "Apache-2.0",
   "bugs": "https://github.com/architect/asap/issues",
   "homepage": "https://github.com/architect/asap#readme",
   "devDependencies": {
-    "@architect/eslint-config": "1.0.0",
-    "@architect/functions": "3.13.8",
+    "@architect/eslint-config": "~1.0.0",
+    "@architect/req-res-fixtures": "git+https://github.com/architect/req-res-fixtures.git",
     "aws-sdk": "2.880.0",
-    "browserify": "17.0.0",
+    "browserify": "~17.0.0",
     "cross-env": "7.0.3",
-    "eslint": "7.29.0",
-    "run-series": "1.1.9",
-    "semver": "7.3.5",
-    "tap-spec": "5.0.0",
-    "tape": "5.2.2"
+    "eslint": "~7.31.0",
+    "mime-types": "~2.1.31",
+    "mock-fs": "~5.0.0",
+    "nyc": "~15.1.0",
+    "proxyquire": "~2.1.3",
+    "run-series": "~1.1.9",
+    "semver": "~7.3.5",
+    "tap-spec": "~5.0.0",
+    "tape": "~5.2.2",
+    "terser": "~5.7.1"
   },
   "keywords": [
     "aws",
