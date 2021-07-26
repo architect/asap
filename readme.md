@@ -8,17 +8,20 @@
 
 ## Module
 
-Call ASAP within your handler manually like so:
+Call ASAP within your handler function manually like so:
 
 ```javascript
 let asap = require('@architect/asap')
 
 // All config is optional!
-let config = {
+module.exports = asap({
   // Alias assets to different filenames
-  alias: { 'an-asset.jpg': 'a-different-filename.jpg' }
+  alias: {
+    '/an-asset.jpg': '/a-different-filename.jpg',
+    '/a-path': '/a-different-path',
+  },
   // Pass your own fingerprinted static asset manifest (defaults to Arc-generated static.json)
-  assets: { 'some-file.gif': 'some-file-a1b2c3.gif' }
+  assets: { 'some-file.gif': 'some-file-a1b2c3.gif' },
   // Set a custom bucket configuration (defaults to Arc-generated buckets)
   bucket: {
     staging: 'staging-bucket-name',
@@ -28,17 +31,19 @@ let config = {
   // Override the content-aware cache-control header
   cacheControl: 'max-age=0',
   // Manually set response headers
-  headers: { 'some-header': 'ok=true' }
+  headers: { 'some-header': 'ok=true' },
   // Return null if asset is not found (defaults to false)
   passthru: true,
   // Engage SPA mode (defaults to true)
   spa: false,
-}
-module.exports = asap(config)
+})
 ```
+
 
 ## Lambda handler
 
 Use ASAP as the handler for your Lambda! If you're using Architect, this is done automatically for you when you don't define a root handler for your `@http` pragma.
 
-If using ASAP with non-Architect projects, just point your Lambda's source directory to `src/`
+If using ASAP with non-Architect projects, just point your Lambda's source directory to `src/`, and make sure you set the following two env vars:
+- `NODE_ENV`: `staging` or `production`
+- `ARC_STATIC_BUCKET`: the S3 bucket name where your assets are stored

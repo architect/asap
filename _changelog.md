@@ -4,8 +4,9 @@
 
 ## [4.0.0] 2021-07-25
 
-ASAP comes into its own!
-- ASAP is now fully broken out of `@architect/functions` as of version `4.0.0` of both packages
+ASAP comes into its own! 🎉
+- ASAP is now fully independent of `@architect/functions` as of version `4.0.0` of both packages
+- Except as noted below, ASAP is a drop-in replacement for `arc.http.proxy` calls and usage - no fuss, no muss!
 - For posterity, all related legacy changelog entries can be found below
 
 
@@ -13,16 +14,18 @@ ASAP comes into its own!
 
 - ASAP is leaner, meaner (and when necessary, more easy to debug in production)
   - ASAP 3.x: 233KB
-  - ASAP 4.x: 70KB (-80%!)
-- Potentially breaking change: static assets delivered via ASAP in production AWS environments must have `ContentType` set
-  - This is normally done automatically if your static assets are managed by Architect
-  - However, if you publish / deliver static assets outside your Architect deploy workflow, ensure you are setting the `ContentType` (i.e. MIME type) property on your S3 asset, or it will be delivered as `application/octet-stream`
+  - ASAP 4.x: 70KB (-70%!)
 - Potentially breaking change: when used in projects without a defined root handler, ASAP now defaults to non-SPA mode
   - To re-enable SPA, set the `ARC_STATIC_SPA` env var in your project environment to `true`
-- Breaking change: removed support for Architect 5 (and lower)
-- Breaking change: removed proxy plugins
+- Potentially breaking change: static assets not managed by Architect, but delivered via an Architect + ASAP app must have S3 `ContentType` property set
+  - S3 `ContentType` is normally automatically set if your static assets are managed by Architect
+  - However, if you publish / deliver static assets outside your Architect deploy workflow and deliver them via ASAP, ensure you are setting the `ContentType` (i.e. MIME type) property on your S3 asset
+  - If you do not, your assets will be defaulted to `content-type: application/octet-stream`
+  - This is a super obscure case, but just a heads up!
 - Breaking change: removed support for Node.js 10.x (now EOL, and no longer available to created in AWS Lambda)
-- Normalized headers to lowercase for full HTTP 2 compat
+- Breaking change: removed support for Architect 5 (and lower)
+- Breaking change: removed undocumented proxy plugin interface
+- Normalized headers to lowercase for full HTTP 2 compatibility
 - Updated dependencies
 
 ---

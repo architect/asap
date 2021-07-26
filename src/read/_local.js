@@ -19,7 +19,7 @@ let pretty = require('./_pretty')
  * @param {String} params.IfNoneMatch
  * @param {String} params.isFolder
  * @param {Object} params.config
- * @returns {Object} {statusCode, headers, body}
+ * @returns {Object} { statusCode, headers, body }
  */
 module.exports = async function readLocal (params) {
 
