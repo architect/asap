@@ -4,14 +4,41 @@
 
 [![GitHub CI status](https://github.com/architect/asap/workflows/Node%20CI/badge.svg)](https://github.com/architect/asap/actions?query=workflow%3A%22Node+CI%22)
 
+# Usage
 
-### Updating the ASAP build:
+## Module
 
-- `npm run build`
-  - Reinstalls `@architect/functions`
-  - If a new version is found:
-    - Creates a fresh bundle
-    - Updates and writes `package[-lock].json`
-    - Creates a git commit + git tag (similar to `npm version...`)
+Call ASAP within your handler manually like so:
 
-Run `npm run build`; if there's an update, simply `git push`, and CI/CD will publish the updated package.
+```javascript
+let asap = require('@architect/asap')
+
+// All config is optional!
+let config = {
+  // Alias assets to different filenames
+  alias: { 'an-asset.jpg': 'a-different-filename.jpg' }
+  // Pass your own fingerprinted static asset manifest (defaults to Arc-generated static.json)
+  assets: { 'some-file.gif': 'some-file-a1b2c3.gif' }
+  // Set a custom bucket configuration (defaults to Arc-generated buckets)
+  bucket: {
+    staging: 'staging-bucket-name',
+    production: 'production-bucket-name',
+    folder: 'some-bucket-subfolder',
+  },
+  // Override the content-aware cache-control header
+  cacheControl: 'max-age=0',
+  // Manually set response headers
+  headers: { 'some-header': 'ok=true' }
+  // Return null if asset is not found (defaults to false)
+  passthru: true,
+  // Engage SPA mode (defaults to true)
+  spa: false,
+}
+module.exports = asap(config)
+```
+
+## Lambda handler
+
+Use ASAP as the handler for your Lambda! If you're using Architect, this is done automatically for you when you don't define a root handler for your `@http` pragma.
+
+If using ASAP with non-Architect projects, just point your Lambda's source directory to `src/`
