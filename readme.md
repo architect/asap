@@ -32,9 +32,9 @@ module.exports = asap({
   cacheControl: 'max-age=0',
   // Manually set response headers
   headers: { 'some-header': 'ok=true' },
-  // Return null if asset is not found (defaults to false)
+  // Return null if asset is not found (defaults to `false`)
   passthru: true,
-  // Engage SPA mode (defaults to true)
+  // Engage SPA mode (defaults to `false`)
   spa: false,
 })
 ```
