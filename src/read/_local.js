@@ -110,7 +110,7 @@ module.exports = async function readLocal (params) {
     let notFound = err.name === 'NoSuchKey'
     if (notFound) {
       if (config.passthru) return null
-      return await pretty({ Key: filePath, config, isFolder })
+      return pretty({ Key: filePath, config, isFolder })
     }
     else {
       let title = err.name
