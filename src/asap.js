@@ -1,4 +1,4 @@
-let read = require('./read')
+let reader = require('./read')
 let errors = require('./lib/error')
 
 /**
@@ -7,6 +7,7 @@ let errors = require('./lib/error')
  * @param config - object, for configuration
  * @param config.alias - object, map of root URLs to alias to other URLs (all should be root-rel)
  * @param config.assets - object, map of unfingerprinted filenames to fingerprinted filenames
+ * @param config.env - string, arc environment; `testing` forces local reads
  * @param config.bucket - object, { staging, production } override S3 bucket names
  * @param config.bucket.staging - string, override the staging S3 bucket name
  * @param config.bucket.production - string, override the production S3 bucket name
@@ -88,7 +89,8 @@ function asap (config = {}) {
     let find = k => k.toLowerCase() === 'if-none-match'
     let IfNoneMatch = req.headers && req.headers[Object.keys(req.headers).find(find)]
 
-    return await read({ Key, Bucket, IfNoneMatch, isFolder, config, rootPath })
+    let read = reader({ env: config.env })
+    return read({ Key, Bucket, IfNoneMatch, isFolder, config, rootPath })
   }
 }
 

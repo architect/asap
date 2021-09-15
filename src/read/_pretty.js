@@ -11,7 +11,7 @@ let { httpError } = require('../lib/error')
 module.exports = async function pretty (params) {
   let { Bucket, Key, assets, headers, isFolder, prefix } = params
   let { ARC_LOCAL, ARC_SANDBOX_PATH_TO_STATIC, NODE_ENV } = process.env
-  let local = NODE_ENV === 'testing' || ARC_LOCAL
+  let local = NODE_ENV === 'testing' || ARC_LOCAL || params.env === 'testing'
   let s3 = new aws.S3
 
   function getKey (Key) {
@@ -40,7 +40,7 @@ module.exports = async function pretty (params) {
   }
 
   async function getS3 (Key) {
-    return await s3.getObject({ Bucket, Key }).promise()
+    return s3.getObject({ Bucket, Key }).promise()
   }
 
   async function get (file) {

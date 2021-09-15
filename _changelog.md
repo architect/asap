@@ -2,6 +2,20 @@
 
 ---
 
+## [4.0.1] 2021-09-15
+
+### Added
+
+- Added `env` option for manually specifying `testing` environment use;
+  - Leaving undocumented for now as it's likely only practical use is as an internal option for Sandbox
+
+
+### Changed
+
+- Updated dependencies
+
+---
+
 ## [4.0.0] 2021-07-25
 
 ASAP comes into its own! 🎉

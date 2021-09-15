@@ -1,7 +1,8 @@
 let test = require('tape')
 let { join } = require('path')
 let proxyquire = require('proxyquire')
-let readStub = params => params
+let reader = params => params
+let readStub = () => reader
 let sut = join(process.cwd())
 let asap = proxyquire(sut, {
   './read': readStub
@@ -26,7 +27,7 @@ test('Set up env', t => {
 
 test('Config: bucket', async t => {
   t.plan(5)
-  let proxy = await asap()
+  let proxy = asap()
 
   // Test no bucket config
   let result = await proxy(req)
@@ -39,7 +40,7 @@ test('Config: bucket', async t => {
   t.equal(result.Bucket, productionBucket, 'ARC_STATIC_BUCKET sets bucket')
 
   // Test ARC_STATIC_BUCKET vs config
-  proxy = await asap({
+  proxy = asap({
     bucket: {
       production: stagingBucket
     }
@@ -49,7 +50,7 @@ test('Config: bucket', async t => {
   delete process.env.ARC_STATIC_BUCKET
 
   // Test config.bucket
-  proxy = await asap({
+  proxy = asap({
     bucket: {
       staging: stagingBucket
     }
@@ -62,7 +63,7 @@ test('Config: SPA', async t => {
   t.plan(6)
 
   // Test spa:true to get /
-  let proxy = await asap({
+  let proxy = asap({
     bucket: {
       staging: stagingBucket
     },
@@ -72,7 +73,7 @@ test('Config: SPA', async t => {
   t.equal(result.Key, 'index.html', 'spa:true calls root index.html requesting /')
 
   // Test spa: true to get /{proxy+}
-  proxy = await asap({
+  proxy = asap({
     bucket: {
       staging: stagingBucket
     },
@@ -83,7 +84,7 @@ test('Config: SPA', async t => {
 
   // Test spa:false
   process.env.ARC_STATIC_SPA = 'false'
-  proxy = await asap({
+  proxy = asap({
     bucket: {
       staging: stagingBucket
     },
@@ -109,7 +110,7 @@ test('Config: SPA', async t => {
 /*
 // TODO Test config.alias? (undocumented, may retire)
 test('Config: alias', t => {
-  proxy = await asap({
+  proxy = asap({
     alias: req.path
   })
   t.end()
@@ -120,7 +121,7 @@ test('IfNoneMatch param', async t => {
   t.plan(1)
   let ifNoneMatchReq = JSON.parse(JSON.stringify(req))
   ifNoneMatchReq.headers['If-None-Match'] = 'foo'
-  let proxy = await asap(basicBucketConfig)
+  let proxy = asap(basicBucketConfig)
   let result = await proxy(ifNoneMatchReq)
   t.equal(result.IfNoneMatch, 'foo', 'IfNoneMatch param correctly set')
 })
@@ -128,7 +129,7 @@ test('IfNoneMatch param', async t => {
 // rootPath
 test('rootPath param', async t => {
   t.plan(3)
-  let proxy = await asap(basicBucketConfig)
+  let proxy = asap(basicBucketConfig)
 
   // Control
   let result = await proxy(proxyReq)
@@ -148,7 +149,7 @@ test('rootPath param', async t => {
 
 test('Read shape', async t => {
   t.plan(4)
-  let proxy = await asap(basicBucketConfig)
+  let proxy = asap(basicBucketConfig)
   let result = await proxy(req)
   // Need hasOwnProperty to check for existence of existing undefined properties
   // eslint-disable-next-line
