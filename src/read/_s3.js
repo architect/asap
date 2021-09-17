@@ -27,8 +27,8 @@ let { decompress } = require('../format/compress')
 module.exports = async function readS3 (params) {
 
   let { Bucket, Key, IfNoneMatch, isFolder, config, rootPath } = params
-  let { ARC_STATIC_PREFIX, ARC_STATIC_FOLDER } = process.env
-  let prefix = ARC_STATIC_PREFIX || ARC_STATIC_FOLDER || config.bucket && config.bucket.folder
+  let { ARC_STATIC_PREFIX } = process.env
+  let prefix = ARC_STATIC_PREFIX || config.bucket && config.bucket.folder
   let assets = config.assets || staticAssets
   let headers = {}
   let response = {}
