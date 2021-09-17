@@ -10,8 +10,11 @@ let { httpError } = require('../lib/error')
  */
 module.exports = async function pretty (params) {
   let { Bucket, Key, assets, headers, isFolder, prefix, sandboxPath } = params
-  let { ARC_LOCAL, NODE_ENV } = process.env
-  let local = NODE_ENV === 'testing' || ARC_LOCAL || params.env === 'testing'
+  let { ARC_ENV, ARC_LOCAL, NODE_ENV } = process.env
+  let local = params.env === 'testing' ||
+              ARC_ENV === 'testing' ||
+              NODE_ENV === 'testing' ||
+              ARC_LOCAL
   let s3 = new aws.S3
 
   function getKey (Key) {

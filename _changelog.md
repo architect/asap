@@ -11,6 +11,7 @@
 - Added `sandboxPath` option for manually specifying the `testing` environment's Sandbox static asset folder
   - This helps us deprecate a very old Sandbox-only internal env var that was used in place of properly passing parameters to ASAP
   - Also leaving this undocumented for now, for the same reasons as above
+- Added support for `ARC_ENV` (in favor of `NODE_ENV`)
 
 
 ### Changed
