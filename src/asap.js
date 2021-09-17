@@ -38,8 +38,9 @@ function asap (config = {}) {
       ? configBucket && configBucket['production']
       : configBucket && configBucket['staging']
     // Ok, all that out of the way, let's set the actual bucket, eh?
+    let needBucket = config.env !== 'testing'
     let Bucket = ARC_STATIC_BUCKET || bucketSetting
-    if (!Bucket) {
+    if (!Bucket && needBucket) {
       return errors.proxyConfig
     }
 
