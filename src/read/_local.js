@@ -24,16 +24,17 @@ let pretty = require('./_pretty')
 module.exports = async function readLocal (params) {
 
   let { Key, IfNoneMatch, isFolder, config } = params
+  // TODO: ARC_SANDBOX_PATH_TO_STATIC deprecated in Arc 4.1; retire in next breaking change
   let { ARC_SANDBOX_PATH_TO_STATIC, ARC_STATIC_PREFIX, ARC_STATIC_FOLDER } = process.env
   let headers = {}
   let response = {}
 
   // After 6.x we can rely on this env var in sandbox
-  let basePath = ARC_SANDBOX_PATH_TO_STATIC
+  let sandboxPath = config.sandboxPath || ARC_SANDBOX_PATH_TO_STATIC
 
-  // Unlike S3, handle basePath and assets inside the function as Sandbox is long-lived
+  // Unlike S3, handle sandboxPath and assets inside the function as Sandbox is long-lived
   let staticAssets
-  let staticManifest = join(basePath, 'static.json')
+  let staticManifest = join(sandboxPath, 'static.json')
   if (existsSync(staticManifest)) {
     staticAssets = JSON.parse(readFileSync(staticManifest))
   }
@@ -41,7 +42,7 @@ module.exports = async function readLocal (params) {
 
   // Look up the blob
   // Assume we're running from a lambda in src/**/* OR from vendored node_modules/@architect/sandbox
-  let filePath = join(basePath, Key)
+  let filePath = join(sandboxPath, Key)
   // Denormalize static folder for local paths (not something we'd do in S3)
   let staticPrefix = ARC_STATIC_PREFIX || ARC_STATIC_FOLDER
   if (filePath.includes(staticPrefix)) {
@@ -57,7 +58,7 @@ module.exports = async function readLocal (params) {
 
     if (!existsSync(filePath)) {
       if (config.passthru) return null
-      return await pretty({ Key: filePath, config, isFolder })
+      return await pretty({ Key: filePath, config, isFolder, sandboxPath })
     }
 
     response.body = readFileSync(filePath)
@@ -110,7 +111,7 @@ module.exports = async function readLocal (params) {
     let notFound = err.name === 'NoSuchKey'
     if (notFound) {
       if (config.passthru) return null
-      return pretty({ Key: filePath, config, isFolder })
+      return pretty({ Key: filePath, config, isFolder, sandboxPath })
     }
     else {
       let title = err.name

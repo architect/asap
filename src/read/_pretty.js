@@ -9,8 +9,8 @@ let { httpError } = require('../lib/error')
  *   Finally, return the default 404
  */
 module.exports = async function pretty (params) {
-  let { Bucket, Key, assets, headers, isFolder, prefix } = params
-  let { ARC_LOCAL, ARC_SANDBOX_PATH_TO_STATIC, NODE_ENV } = process.env
+  let { Bucket, Key, assets, headers, isFolder, prefix, sandboxPath } = params
+  let { ARC_LOCAL, NODE_ENV } = process.env
   let local = NODE_ENV === 'testing' || ARC_LOCAL || params.env === 'testing'
   let s3 = new aws.S3
 
@@ -25,9 +25,8 @@ module.exports = async function pretty (params) {
 
   // eslint-disable-next-line
   async function getLocal (file) {
-    let basepath = ARC_SANDBOX_PATH_TO_STATIC
-    if (!file.startsWith(basepath)) {
-      file = join(basepath, file)
+    if (!file.startsWith(sandboxPath)) {
+      file = join(sandboxPath, file)
     }
     if (!existsSync(file)) {
       let err = ReferenceError(`NoSuchKey: ${Key} not found`)
