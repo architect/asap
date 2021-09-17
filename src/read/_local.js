@@ -25,7 +25,7 @@ module.exports = async function readLocal (params) {
 
   let { Key, IfNoneMatch, isFolder, config } = params
   // TODO: ARC_SANDBOX_PATH_TO_STATIC deprecated in Arc 4.1; retire in next breaking change
-  let { ARC_SANDBOX_PATH_TO_STATIC, ARC_STATIC_PREFIX, ARC_STATIC_FOLDER } = process.env
+  let { ARC_SANDBOX_PATH_TO_STATIC, ARC_STATIC_PREFIX: staticPrefix } = process.env
   let headers = {}
   let response = {}
 
@@ -44,8 +44,7 @@ module.exports = async function readLocal (params) {
   // Assume we're running from a lambda in src/**/* OR from vendored node_modules/@architect/sandbox
   let filePath = join(sandboxPath, Key)
   // Denormalize static folder for local paths (not something we'd do in S3)
-  let staticPrefix = ARC_STATIC_PREFIX || ARC_STATIC_FOLDER
-  if (filePath.includes(staticPrefix)) {
+  if (staticPrefix && filePath.includes(staticPrefix)) {
     filePath = filePath.replace(`${staticPrefix}${sep}`, '')
   }
 
