@@ -8,6 +8,9 @@
 
 - Added `env` option for manually specifying `testing` environment use;
   - Leaving undocumented for now as it's likely only practical use is as an internal option for Sandbox
+- Added `sandboxPath` option for manually specifying the `testing` environment's Sandbox static asset folder
+  - This helps us deprecate a very old Sandbox-only internal env var that was used in place of properly passing parameters to ASAP
+  - Also leaving this undocumented for now, for the same reasons as above
 
 
 ### Changed

@@ -3,7 +3,7 @@ let mockfs = require('mock-fs')
 let proxyquire = require('proxyquire')
 let { join } = require('path')
 let env = process.env.NODE_ENV
-let pathToStatic = process.env.ARC_SANDBOX_PATH_TO_STATIC
+let sandboxPath = join(process.cwd(), 'public')
 
 let errorState
 let buf = msg => Buffer.from(msg)
@@ -96,7 +96,6 @@ test('Peek and find nested index.html', async t => {
 
   // Local
   process.env.NODE_ENV = 'testing'
-  process.env.ARC_SANDBOX_PATH_TO_STATIC = ''
   let msg = 'got ok/hi/index.html from local!'
   mockfs({
     'ok/hi/index.html': buf(msg)
@@ -105,7 +104,8 @@ test('Peek and find nested index.html', async t => {
     Bucket,
     Key,
     headers,
-    isFolder
+    isFolder,
+    sandboxPath: '',
   })
   t.equal(result.body, msg, 'Successfully peeked into a local folder without a trailing slash')
   reset()
@@ -133,7 +133,8 @@ test('Peek and do not find nested index.html', async t => {
     Bucket,
     Key,
     headers,
-    isFolder
+    isFolder,
+    sandboxPath,
   })
   t.equal(result.statusCode, 404, 'Returns statusCode of 404 if local file is not found')
   t.match(result.body, /NoSuchKey/, 'Error message included in response from local')
@@ -190,7 +191,8 @@ test('Return a custom 404', async t => {
     Bucket,
     Key,
     headers,
-    isFolder
+    isFolder,
+    sandboxPath: '',
   })
   t.equal(result.statusCode, 404, 'Returns statusCode of 404 with custom 404 error from local')
   t.equal(result.body, msg, 'Output is custom 404 page from local')
@@ -222,7 +224,8 @@ test('Return the default 404', async t => {
     Bucket,
     Key,
     headers,
-    isFolder
+    isFolder,
+    sandboxPath,
   })
   t.equal(result.statusCode, 404, 'Returns statusCode of 404 if local file is not found')
   t.match(result.body, /NoSuchKey/, 'Error message included in response from local')
@@ -230,11 +233,7 @@ test('Return the default 404', async t => {
 })
 
 test('Teardown', t => {
+  t.plan(1)
   process.env.NODE_ENV = env
-  if (pathToStatic === 'undefined') {
-    delete process.env.ARC_SANDBOX_PATH_TO_STATIC
-  }
-  else process.env.ARC_SANDBOX_PATH_TO_STATIC = pathToStatic
-  t.pass('Ok')
-  t.end()
+  t.pass('Done')
 })

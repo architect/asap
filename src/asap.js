@@ -15,6 +15,7 @@ let errors = require('./lib/error')
  * @param config.cacheControl - string, set a custom cache-control header value
  * @param config.passthru - boolean, return null if no file is found
  * @param config.headers - object, map of custom response headers
+ * @param config.sandboxPath - string, local filesystem path for Sandbox static assets
  * @param config.spa - boolean, forces index.html no matter the folder depth
  *
  * @returns HTTPLambda - an HTTP Lambda function that proxies calls to S3
@@ -89,7 +90,7 @@ function asap (config = {}) {
     let find = k => k.toLowerCase() === 'if-none-match'
     let IfNoneMatch = req.headers && req.headers[Object.keys(req.headers).find(find)]
 
-    let read = reader({ env: config.env })
+    let read = reader({ env: config.env, sandboxPath: config.sandboxPath })
     return read({ Key, Bucket, IfNoneMatch, isFolder, config, rootPath })
   }
 }
