@@ -2,7 +2,7 @@
 
 ---
 
-## [4.0.1] 2021-09-15
+## [4.1.0] 2021-09-15
 
 ### Added
 
@@ -17,7 +17,7 @@
 ### Changed
 
 - Updated dependencies
-- Removed support for `ARC_STATIC_FOLDER` (deprecated 2020-06-07; should not have made it to ASAP4)
+- Removed support for `ARC_STATIC_FOLDER` (deprecated 2020-06-07; should not have made it to ASAP v4)
 
 ---
 
