@@ -24,7 +24,7 @@ let pretty = require('./_pretty')
 module.exports = async function readLocal (params) {
 
   let { Key, IfNoneMatch, isFolder, config } = params
-  // TODO: ARC_SANDBOX_PATH_TO_STATIC deprecated in Arc 4.1; retire in next breaking change
+  // TODO [REMOVE]: retire ARC_SANDBOX_PATH_TO_STATIC in next breaking change in favor of ARC_STATIC_BUCKET for better local/prod symmetry
   let { ARC_SANDBOX_PATH_TO_STATIC, ARC_STATIC_PREFIX: staticPrefix } = process.env
   let headers = {}
   let response = {}
