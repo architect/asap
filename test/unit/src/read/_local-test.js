@@ -3,7 +3,7 @@ let mockfs = require('mock-fs')
 let proxyquire = require('proxyquire')
 let { join } = require('path')
 let crypto = require('crypto')
-let env = process.env.NODE_ENV
+let env = process.env.ARC_ENV
 let sandboxPath = join(process.cwd(), 'public')
 
 /**
@@ -37,7 +37,7 @@ let hash = thing => crypto.createHash('sha256').update(thing).digest('hex')
 let dec = i => Buffer.from(i, 'base64').toString()
 let b64 = buf => Buffer.from(buf).toString('base64')
 function reset () {
-  process.env.NODE_ENV = env
+  process.env.ARC_ENV = env
   mockfs.restore()
 }
 
@@ -154,7 +154,7 @@ test('Local proxy reader returns 304 (aka S3 NotModified)', async t => {
 test('Local proxy reader templatizes with local paths when fingerprinting is enabled', async t => {
   t.plan(3)
   // Tests to ensure ${ARC_STATIC('foo.gif')} doesn't use fingerprinted filenames locally
-  process.env.NODE_ENV = 'staging'
+  process.env.ARC_ENV = 'staging'
   mockfs({
     [join(sandboxPath, mdName)]: mdContents,
     [join(sandboxPath, imgName)]: imgContents

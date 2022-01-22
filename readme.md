@@ -45,5 +45,5 @@ module.exports = asap({
 Use ASAP as the handler for your Lambda! If you're using Architect, this is done automatically for you when you don't define a root handler for your `@http` pragma.
 
 If using ASAP with non-Architect projects, just point your Lambda's source directory to `src/`, and make sure you set the following two env vars:
-- `NODE_ENV`: `staging` or `production`
+- `ARC_ENV`: `staging` or `production`
 - `ARC_STATIC_BUCKET`: the S3 bucket name where your assets are stored

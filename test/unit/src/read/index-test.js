@@ -21,10 +21,10 @@ test('Local reader', t => {
   read = reader({ env: 'testing' })
   t.equal(read.name, 'readLocal', 'Got local reader (via env config)')
 
-  process.env.NODE_ENV = 'testing'
+  process.env.ARC_ENV = 'testing'
   read = reader({})
-  t.equal(read.name, 'readLocal', 'Got local reader (via NODE_ENV)')
-  delete process.env.NODE_ENV
+  t.equal(read.name, 'readLocal', 'Got local reader (via ARC_ENV)')
+  delete process.env.ARC_ENV
 
   process.env.ARC_LOCAL = true
   read = reader({})
