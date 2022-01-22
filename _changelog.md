@@ -2,6 +2,15 @@
 
 ---
 
+## [5.0.0] 2022-01-22
+
+### Changed
+
+- Breaking change: Architect no longer automatically populates, relies on, or makes direct use of `NODE_ENV`, `ARC_CLOUDFORMATION`, or `ARC_HTTP` env vars. `@architect/asap` v5+ now requires Architect v10 / Sandbox v5 or later.
+- Breaking change: due to no actual usage, this package is no longer publishing to the GitHub Package registry, only npm
+
+---
+
 ## [4.1.0] 2021-09-15
 
 ### Added

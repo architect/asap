@@ -90,7 +90,7 @@ test('Cache-Control setting', t => {
 })
 
 test('Response encoding', t => {
-  t.plan(19)
+  t.plan(10)
   function usually (extras) {
     let _basicResponse = basicResponse()
     if (extras) _basicResponse = Object.assign(_basicResponse, extras)
@@ -110,19 +110,8 @@ test('Response encoding', t => {
   }
 
   // Arc 6
-  process.env.ARC_CLOUDFORMATION = true
-  t.ok(process.env.ARC_CLOUDFORMATION, 'In Arc 6 mode')
   usually()
 
   // Arc 6 + compression
   usually({ contentEncoding: 'gzip' })
-  delete process.env.ARC_CLOUDFORMATION
-  t.notOk(process.env.ARC_CLOUDFORMATION, 'No longer in Arc 6 mode')
-
-  // Arc Sandbox
-  process.env.ARC_HTTP = 'aws_proxy'
-  t.ok(process.env.ARC_HTTP, 'In sandbox mode')
-  usually()
-  delete process.env.ARC_HTTP
-  t.notOk(process.env.ARC_HTTP, 'No longer in sandbox mode')
 })

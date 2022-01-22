@@ -2,7 +2,7 @@ let test = require('tape')
 let mockfs = require('mock-fs')
 let proxyquire = require('proxyquire')
 let { join } = require('path')
-let env = process.env.NODE_ENV
+let env = process.env.ARC_ENV
 let sandboxPath = join(process.cwd(), 'public')
 
 let errorState
@@ -58,7 +58,7 @@ test('Set up env', t => {
 test('Peek and find nested index.html', async t => {
   t.plan(4)
   // AWS
-  process.env.NODE_ENV = 'staging'
+  process.env.ARC_ENV = 'staging'
   Key = 'ok/hi'
   isFolder = true
   let result = await pretty({
@@ -95,7 +95,7 @@ test('Peek and find nested index.html', async t => {
   t.equal(result.body, 'got a-prefix/ok/hi/index-abc12.html', 'Successfully peeked into an S3 folder with fingerprinting and prefix enabled')
 
   // Local
-  process.env.NODE_ENV = 'testing'
+  process.env.ARC_ENV = 'testing'
   let msg = 'got ok/hi/index.html from local!'
   mockfs({
     'ok/hi/index.html': buf(msg)
@@ -114,7 +114,7 @@ test('Peek and find nested index.html', async t => {
 test('Peek and do not find nested index.html', async t => {
   t.plan(4)
   // AWS
-  process.env.NODE_ENV = 'staging'
+  process.env.ARC_ENV = 'staging'
   Key = 'notOk',
   isFolder = true
   errorState = 'NoSuchKey'
@@ -128,7 +128,7 @@ test('Peek and do not find nested index.html', async t => {
   t.match(result.body, /NoSuchKey/, 'Error message included in response from S3')
 
   // Local
-  process.env.NODE_ENV = 'testing'
+  process.env.ARC_ENV = 'testing'
   result = await pretty({
     Bucket,
     Key,
@@ -144,7 +144,7 @@ test('Peek and do not find nested index.html', async t => {
 test('Return a custom 404', async t => {
   t.plan(8)
   // AWS
-  process.env.NODE_ENV = 'staging'
+  process.env.ARC_ENV = 'staging'
   Key = 'getCustom404'
   let result = await pretty({
     Bucket,
@@ -183,7 +183,7 @@ test('Return a custom 404', async t => {
   t.equal(result.body, 'got a-prefix/404-abc12.html', 'Output is custom 404 page from S3 at: a-prefix/404-abc12.html')
 
   // Local
-  process.env.NODE_ENV = 'testing'
+  process.env.ARC_ENV = 'testing'
   // Update mockfs to find a 404
   let msg = 'got 404 from local!'
   mockfs({ '404.html': buf(msg) })
@@ -202,7 +202,7 @@ test('Return a custom 404', async t => {
 test('Return the default 404', async t => {
   t.plan(4)
   // AWS
-  process.env.NODE_ENV = 'staging'
+  process.env.ARC_ENV = 'staging'
   Key = 'cantfindme'
   errorState = 'NoSuchKey'
   let result = await pretty({
@@ -215,7 +215,7 @@ test('Return the default 404', async t => {
   t.match(result.body, /NoSuchKey/, 'Error message included in response from S3')
 
   // Local
-  process.env.NODE_ENV = 'staging'
+  process.env.ARC_ENV = 'staging'
   // Update mockfs to find a nothing
   mockfs({})
   Key = 'cantfindme'
@@ -234,6 +234,6 @@ test('Return the default 404', async t => {
 
 test('Teardown', t => {
   t.plan(1)
-  process.env.NODE_ENV = env
+  process.env.ARC_ENV = env
   t.pass('Done')
 })
