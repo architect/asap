@@ -119,26 +119,6 @@ test('Local proxy reader unsets ARC_STATIC_PREFIX and returns formatted response
   reset()
 })
 
-test('Local proxy reader uses ARC_SANDBOX_PATH_TO_STATIC (deprecated) and returns formatted response (200)', async t => {
-  t.plan(7)
-  process.env.ARC_SANDBOX_PATH_TO_STATIC = sandboxPath
-  t.ok(process.env.ARC_SANDBOX_PATH_TO_STATIC, 'ARC_SANDBOX_PATH_TO_STATIC set')
-
-  mockfs({
-    [join(sandboxPath, imgName)]: imgContents
-  })
-  let params = read({ config: {} })
-  let result = await readLocal(params)
-  t.equal(result.statusCode, 200, 'Returns statusCode: 200')
-  t.equal(result.headers['cache-control'], defaultCacheControl, 'Returns correct cache-control')
-  t.equal(result.headers['content-type'], imgContentType, 'Returns correct content-type')
-  t.equal(result.headers['etag'], imgETag, 'Returns correct ETag')
-  t.equal(result.body, b64(imgContents), 'Returns correct body')
-  t.ok(result.isBase64Encoded, 'Returns isBase64Encoded: true')
-  delete process.env.ARC_SANDBOX_PATH_TO_STATIC
-  reset()
-})
-
 test('Local proxy reader returns 304 (aka S3 NotModified)', async t => {
   t.plan(2)
   mockfs({

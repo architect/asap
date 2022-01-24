@@ -24,13 +24,12 @@ let pretty = require('./_pretty')
 module.exports = async function readLocal (params) {
 
   let { Key, IfNoneMatch, isFolder, config } = params
-  // TODO [REMOVE]: retire ARC_SANDBOX_PATH_TO_STATIC in next breaking change in favor of ARC_STATIC_BUCKET for better local/prod symmetry
-  let { ARC_SANDBOX_PATH_TO_STATIC, ARC_STATIC_PREFIX: staticPrefix } = process.env
+  let { ARC_STATIC_BUCKET, ARC_STATIC_PREFIX: staticPrefix } = process.env
   let headers = {}
   let response = {}
 
   // After 6.x we can rely on this env var in sandbox
-  let sandboxPath = config.sandboxPath || ARC_SANDBOX_PATH_TO_STATIC
+  let sandboxPath = config.sandboxPath || ARC_STATIC_BUCKET
 
   // Unlike S3, handle sandboxPath and assets inside the function as Sandbox is long-lived
   let staticAssets
