@@ -21,6 +21,9 @@
   "license": "Apache-2.0",
   "bugs": "https://github.com/architect/asap/issues",
   "homepage": "https://github.com/architect/asap#readme",
+  "files": [
+    "src/*"
+  ],
   "devDependencies": {
     "@architect/eslint-config": "~2.0.1",
     "@architect/req-res-fixtures": "git+https://github.com/architect/req-res-fixtures.git",
