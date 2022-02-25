@@ -126,7 +126,11 @@ module.exports = async function readS3 (params) {
     return response
   }
   catch (err) {
-    let notFound = err.name === 'NoSuchKey'
+    /**
+     * If you have the s3:ListBucket permission on the bucket, Amazon S3 will return an HTTP status code 404 ("no such key") error.
+     * If you don’t have the s3:ListBucket permission, Amazon S3 will return an HTTP status code 403 ("access denied") error.
+     */
+    let notFound = [ 'NoSuchKey', 'AccessDenied' ].includes(err.name)
     if (notFound) {
       if (config.passthru) return null
       return pretty({ Bucket, Key, assets, headers, isFolder, prefix })

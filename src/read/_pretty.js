@@ -50,7 +50,12 @@ module.exports = async function pretty (params) {
       return await getter(file)
     }
     catch (err) {
-      if (err.name === 'NoSuchKey') {
+      /**
+       * If you have the s3:ListBucket permission on the bucket, Amazon S3 will return an HTTP status code 404 ("no such key") error.
+       * If you don’t have the s3:ListBucket permission, Amazon S3 will return an HTTP status code 403 ("access denied") error.
+       */
+      if ([ 'NoSuchKey', 'AccessDenied' ].includes(err.name)) {
+        err.name = 'NoSuchKey' // converge to NoSuchKey 404
         err.statusCode = 404
         return err
       }

@@ -141,6 +141,37 @@ test('Peek and do not find nested index.html', async t => {
   reset()
 })
 
+
+test('Peek and do not find nested index.html - 403', async t => {
+  t.plan(4)
+  // AWS
+  process.env.ARC_ENV = 'staging'
+  Key = 'notOk',
+  isFolder = true
+  errorState = 'AccessDenied'
+  let result = await pretty({
+    Bucket,
+    Key,
+    headers,
+    isFolder
+  })
+  t.equal(result.statusCode, 404, 'Returns statusCode of 404 if S3 file is not found')
+  t.match(result.body, /NoSuchKey/, 'Error message included in response from S3')
+
+  // Local
+  process.env.ARC_ENV = 'testing'
+  result = await pretty({
+    Bucket,
+    Key,
+    headers,
+    isFolder,
+    sandboxPath,
+  })
+  t.equal(result.statusCode, 404, 'Returns statusCode of 404 if local file is not found')
+  t.match(result.body, /NoSuchKey/, 'Error message included in response from local')
+  reset()
+})
+
 test('Return a custom 404', async t => {
   t.plan(8)
   // AWS
