@@ -1,5 +1,11 @@
 # Architect Static Asset Proxy (ASAP) changelog
 
+## [5.0.1] 2022-02-25
+
+### Changed
+
+- Converge `AccessDenied` when fetching object to 404 `NoSuchKey`. If you have the `s3:ListBucket` permission on the bucket, Amazon S3 will return an HTTP status code 404 ("no such key") error. If you **don’t** have the `s3:ListBucket` permission, Amazon S3 will return an HTTP status code 403 ("access denied") error. So asap converges the 403 case, when fetching objects, to the 404 case.
+
 ---
 
 ## [5.0.0] 2022-01-22
