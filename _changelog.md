@@ -2,6 +2,15 @@
 
 ---
 
+## [5.0.1] 2022-03-03
+
+### Changed
+
+- Deep require `aws-sdk` S3 client for a potentially large cold start perf boost
+  - In small-scale testing, we found this reduces cold start performance by 2-3x, averaging ~150ms on Lambda
+
+---
+
 ## [5.0.0] 2022-01-22
 
 ### Changed

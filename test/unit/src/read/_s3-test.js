@@ -17,8 +17,9 @@ let prettyStub = async () => 'pretty'
 let enable304
 let errorState
 let options = {}
-let S3Stub = {
-  S3: function ctor () {
+/* eslint-disable fp/no-class */
+class S3Stub {
+  constructor () {
     return {
       getObject: function (opts) {
         options = opts
@@ -46,8 +47,7 @@ let S3Stub = {
         }
       }
     }
-  },
-  '@noCallThru': true
+  }
 }
 let staticStub = {
   'images/this-is-fine.gif': 'images/this-is-fine-a1c3e5.gif',
@@ -100,7 +100,7 @@ let imgETag = 'abc123'
 // Ok, we're good to go
 let sut = join(process.cwd(), 'src', 'read', '_s3')
 let readS3 = proxyquire(sut, {
-  'aws-sdk': S3Stub,
+  'aws-sdk/clients/s3': S3Stub,
   './_pretty': prettyStub
 })
 

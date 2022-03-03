@@ -8,32 +8,35 @@ let sandboxPath = join(process.cwd(), 'public')
 let errorState
 let buf = msg => Buffer.from(msg)
 // Tried to use 'aws-sdk-mock', wasn't able to get it working with aws.whatever().promise()
-let S3Stub = { S3: function ctor () {
-  return {
-    getObject: function ({ Key }) {
-      // Good responses (only checking body here)
-      // eslint-disable-next-line
-      let got = { promise: async function () {
-        return { Body: buf(`got ${Key}`) }
-      } }
+/* eslint-disable fp/no-class */
+class S3Stub {
+  constructor () {
+    return {
+      getObject: ({ Key }) => {
+        // Good responses (only checking body here)
+        // eslint-disable-next-line
+        let got = { promise: async function () {
+          return { Body: buf(`got ${Key}`) }
+        } }
 
-      // Failed requests (aws-sdk completely blows up)
-      // eslint-disable-next-line
-      let thrower = { promise: async function () {
-        let err = new Error(errorState)
-        err.name = errorState
-        throw err
-      } }
+        // Failed requests (aws-sdk completely blows up)
+        // eslint-disable-next-line
+        let thrower = { promise: async function () {
+          let err = new Error(errorState)
+          err.name = errorState
+          throw err
+        } }
 
-      if (isFolder) {
-        if (Key.includes('ok/hi')) return got
-        if (Key.includes('notOk')) return thrower
+        if (isFolder) {
+          if (Key.includes('ok/hi')) return got
+          if (Key.includes('notOk')) return thrower
+        }
+        if (Key.includes('404') && !errorState) return got
+        return thrower
       }
-      if (Key.includes('404') && !errorState) return got
-      return thrower
     }
   }
-} }
+}
 
 let reset = () => {
   Key = isFolder = errorState = undefined
@@ -42,7 +45,7 @@ let reset = () => {
 
 let sut = join(process.cwd(), 'src', 'read', '_pretty')
 let pretty = proxyquire(sut, {
-  'aws-sdk': S3Stub
+  'aws-sdk/clients/s3': S3Stub
 })
 
 let Key
