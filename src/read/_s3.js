@@ -1,6 +1,7 @@
 let { existsSync, readFileSync } = require('fs')
 let { extname, join } = require('path')
-let aws = require('aws-sdk')
+let S3 = require('aws-sdk/clients/s3')
+let s3 = new S3
 
 let _isHTMLorJSON = require('../lib/is-html-json')
 let binaryTypes = require('../lib/binary-types')
@@ -36,7 +37,6 @@ module.exports = async function readS3 (params) {
   try {
     // If client sends If-None-Match, use it in S3 getObject params
     let matchedETag = false
-    let s3 = new aws.S3
 
     // Try to interpolate HTML/JSON requests to fingerprinted filenames
     let isHTMLorJSON = _isHTMLorJSON(Key)

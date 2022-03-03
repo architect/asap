@@ -1,7 +1,8 @@
-let aws = require('aws-sdk')
 let { existsSync, readFileSync } = require('fs')
 let { join } = require('path')
 let { httpError } = require('../lib/error')
+let S3 = require('aws-sdk/clients/s3')
+let s3 = new S3
 
 /**
  * Peek into a dir without a trailing slash to see if it's got an index.html file
@@ -14,7 +15,6 @@ module.exports = async function pretty (params) {
   let local = params.env === 'testing' ||
               ARC_ENV === 'testing' ||
               ARC_LOCAL
-  let s3 = new aws.S3
 
   function getKey (Key) {
     let lookup = Key.replace(prefix + '/', '')
