@@ -2,6 +2,14 @@
 
 ---
 
+## [5.0.2] 2022-10-18
+
+### Fixed
+
+- Fix semi-obscure case where ASAP is expected to work locally without `aws-sdk` installed
+
+---
+
 ## [5.0.1] 2022-03-03
 
 ### Changed

@@ -44,9 +44,7 @@ let reset = () => {
 }
 
 let sut = join(process.cwd(), 'src', 'read', '_pretty')
-let pretty = proxyquire(sut, {
-  'aws-sdk/clients/s3': S3Stub
-})
+let pretty
 
 let Key
 let isFolder
@@ -55,6 +53,10 @@ let headers = {}
 
 test('Set up env', t => {
   t.plan(1)
+  process.env.__TESTING__ = true
+  pretty = proxyquire(sut, {
+    'aws-sdk/clients/s3': S3Stub
+  })
   t.ok(pretty, 'Loaded pretty')
 })
 
@@ -238,5 +240,6 @@ test('Return the default 404', async t => {
 test('Teardown', t => {
   t.plan(1)
   process.env.ARC_ENV = env
+  delete process.env.__TESTING__
   t.pass('Done')
 })
