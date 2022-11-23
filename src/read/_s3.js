@@ -1,6 +1,7 @@
 let { existsSync, readFileSync } = require('fs')
 let { extname, join } = require('path')
 
+let isNode18 = require('./_is-node-18')
 let _isHTMLorJSON = require('../lib/is-html-json')
 let binaryTypes = require('../lib/binary-types')
 let binaryExts = require('../lib/binary-extensions')
@@ -73,9 +74,18 @@ module.exports = async function readS3 (params) {
       options.IfNoneMatch = IfNoneMatch
     }
 
-    // eslint-disable-next-line
-    let S3 = require('aws-sdk/clients/s3')
-    let s3 = new S3
+    let s3
+    if (isNode18) {
+      // eslint-disable-next-line
+      let { S3 } = require('@aws-sdk/client-s3')
+      s3 = new S3
+    }
+    else {
+      // eslint-disable-next-line
+      let S3 = require('aws-sdk/clients/s3')
+      s3 = new S3
+    }
+
     let result = await s3.getObject(options).promise().catch(err => {
       // ETag matches (getObject error code of NotModified), so don't transit the whole file
       if (err.code === 'NotModified') {
