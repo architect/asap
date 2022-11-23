@@ -5,6 +5,8 @@ let { join } = require('path')
 let crypto = require('crypto')
 let env = process.env.ARC_ENV
 let sandboxPath = join(process.cwd(), 'public')
+let isNode18 = require('../../../../src/read/_is-node-18')
+if (!isNode18) {
 
 /**
  * We'll test for basic response formatting, templatization, and headers
@@ -161,3 +163,4 @@ test('Local proxy reader returns null if passthru mode', async t => {
   console.log({ result })
   t.equal(result, null, 'File not found returns null if passthru mode')
 })
+}
