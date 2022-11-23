@@ -74,19 +74,25 @@ module.exports = async function readS3 (params) {
       options.IfNoneMatch = IfNoneMatch
     }
 
-    let s3
+    let method
     if (isNode18) {
       // eslint-disable-next-line
       let { S3 } = require('@aws-sdk/client-s3')
-      s3 = new S3
+      let s3 = new S3
+      method = params => {
+        return s3.getObject(params)
+      }
     }
     else {
       // eslint-disable-next-line
       let S3 = require('aws-sdk/clients/s3')
-      s3 = new S3
+      let s3 = new S3
+      method = params => {
+        return s3.getObject(params).promise()
+      }
     }
 
-    let result = await s3.getObject(options).promise().catch(err => {
+    let result = await method(options).catch(err => {
       // ETag matches (getObject error code of NotModified), so don't transit the whole file
       if (err.code === 'NotModified') {
         matchedETag = true
