@@ -78,7 +78,7 @@ module.exports = async function readS3 (params) {
     if (isNode18) {
       // eslint-disable-next-line
       let { S3 } = require('@aws-sdk/client-s3')
-      let s3 = new S3
+      let s3 = new S3({})
       method = params => {
         return s3.getObject(params)
       }
