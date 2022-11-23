@@ -1,12 +1,20 @@
 let { existsSync, readFileSync } = require('fs')
 let { join } = require('path')
 let { httpError } = require('../lib/error')
+let isNode18 = require('./_is-node-18')
 
 let s3
 if (process.env.__TESTING__) {
-  // eslint-disable-next-line
-  let S3 = require('aws-sdk/clients/s3')
-  s3 = new S3
+  if (isNode18) {
+    // eslint-disable-next-line
+    let { S3 } = require('@aws-sdk/client-s3')
+    s3 = new S3
+  }
+  else {
+    // eslint-disable-next-line
+    let S3 = require('aws-sdk/clients/s3')
+    s3 = new S3
+  }
 }
 
 /**
@@ -47,9 +55,16 @@ module.exports = async function pretty (params) {
 
   async function getS3 (Key) {
     if (!process.env.__TESTING__) {
-      // eslint-disable-next-line
-      let S3 = require('aws-sdk/clients/s3')
-      s3 = new S3
+      if (isNode18) {
+        // eslint-disable-next-line
+        let { S3 } = require('@aws-sdk/client-s3')
+        s3 = new S3
+      }
+      else {
+        // eslint-disable-next-line
+        let S3 = require('aws-sdk/clients/s3')
+        s3 = new S3
+      }
     }
     return s3.getObject({ Bucket, Key }).promise()
   }
