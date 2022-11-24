@@ -2,6 +2,21 @@
 
 ---
 
+## [5.1.0] 2022-11-24
+
+### Added
+
+- Added support for Lambda's new `nodejs18.x` runtime, and AWS SDK v3 (`@aws-sdk/*`)
+  - To opt in, simply upgrade `@architect/architect` to 10.8 and change your `@aws runtime` setting to `nodejs18.x` (learn more at http://arc.codes/docs/en/reference/project-manifest/aws#runtime)
+- Added Node.js 18.x to test coverage
+
+
+### Changed
+
+- Updated dependencies
+
+---
+
 ## [5.0.2] 2022-10-18
 
 ### Fixed
