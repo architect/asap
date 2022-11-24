@@ -79,20 +79,30 @@ module.exports = async function readS3 (params) {
       // eslint-disable-next-line
       let { S3 } = require('@aws-sdk/client-s3')
       let s3 = new S3({ region: process.env.AWS_REGION || 'us-west-2' })
-      method = params => {
-        return s3.getObject(params)
+      method = async params => {
+        let res = await s3.getObject(params)
+        const streamToString = (stream) => new Promise((resolve, reject) => {
+          const chunks = []
+          stream.on('data', (chunk) => chunks.push(chunk))
+          stream.on('error', reject)
+          stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+        })
+        let bod = await streamToString(res.Body)
+        return { ...res, ...{ Body: bod } }
       }
     }
     else {
       // eslint-disable-next-line
       let S3 = require('aws-sdk/clients/s3')
       let s3 = new S3
-      method = params => {
-        return s3.getObject(params).promise()
-      }
+      method = params => s3.getObject(params).promise()
     }
 
-    let result = await method(options).catch(err => {
+    let result
+    try {
+      result = await method(options)
+    }
+    catch (err) {
       // ETag matches (getObject error code of NotModified), so don't transit the whole file
       if (err.code === 'NotModified') {
         matchedETag = true
@@ -106,7 +116,7 @@ module.exports = async function readS3 (params) {
         // Important: do not swallow this error otherwise!
         throw err
       }
-    })
+    }
 
     // No ETag found, return the blob
     if (!matchedETag) {
