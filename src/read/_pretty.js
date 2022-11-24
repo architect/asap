@@ -1,7 +1,14 @@
+let isNode18 = require('./_is-node-18')
 let { existsSync, readFileSync } = require('fs')
 let { join } = require('path')
 let { httpError } = require('../lib/error')
-let isNode18 = require('./_is-node-18')
+
+let s3
+if (process.env.__TESTING__) {
+  // eslint-disable-next-line
+  let S3 = require('aws-sdk/clients/s3')
+  s3 = new S3
+}
 
 /**
  * Peek into a dir without a trailing slash to see if it's got an index.html file
@@ -47,9 +54,11 @@ module.exports = async function pretty (params) {
       return s3.getObject({ Bucket, Key })
     }
     else {
-      // eslint-disable-next-line
-      let S3 = require('aws-sdk/clients/s3')
-      let s3 = new S3
+      if (!process.env.__TESTING__) {
+        // eslint-disable-next-line
+        let S3 = require('aws-sdk/clients/s3')
+        s3 = new S3
+      }
       return s3.getObject({ Bucket, Key }).promise()
     }
   }
