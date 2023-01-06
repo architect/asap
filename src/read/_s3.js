@@ -77,10 +77,11 @@ module.exports = async function readS3 (params) {
     let method
     if (_isNode18) {
       // eslint-disable-next-line
-      let { S3 } = require('@aws-sdk/client-s3')
-      let s3 = new S3({ region: process.env.AWS_REGION || 'us-west-2' })
+      let { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
+      let client = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' })
       method = async params => {
-        let res = await s3.getObject(params)
+        let command = new GetObjectCommand(params)
+        let res = await client.send(command)
         const streamToString = (stream) => new Promise((resolve, reject) => {
           const chunks = []
           stream.on('data', (chunk) => chunks.push(chunk))
