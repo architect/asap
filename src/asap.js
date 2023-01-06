@@ -4,21 +4,21 @@ let errors = require('./lib/error')
 /**
  * Architect Static Asset Proxy
  *
- * @param config - object, for configuration
- * @param config.alias - object, map of root URLs to alias to other URLs (all should be root-rel)
- * @param config.assets - object, map of unfingerprinted filenames to fingerprinted filenames
- * @param config.env - string, arc environment; `testing` forces local reads
- * @param config.bucket - object, { staging, production } override S3 bucket names
- * @param config.bucket.staging - string, override the staging S3 bucket name
- * @param config.bucket.production - string, override the production S3 bucket name
- * @param config.bucket.folder - string, set an optional bucket folder to work within
- * @param config.cacheControl - string, set a custom cache-control header value
- * @param config.passthru - boolean, return null if no file is found
- * @param config.headers - object, map of custom response headers
- * @param config.sandboxPath - string, local filesystem path for Sandbox static assets
- * @param config.spa - boolean, forces index.html no matter the folder depth
+ * @param {Object} config - for configuration
+ * @param {Object} config.alias - map of root URLs to alias to other URLs (all should be root-rel)
+ * @param {Object} config.assets - map of unfingerprinted filenames to fingerprinted filenames
+ * @param {string} config.env - arc environment; `testing` forces local reads
+ * @param {Object} config.bucket - { staging, production } override S3 bucket names
+ * @param {string} config.bucket.staging - override the staging S3 bucket name
+ * @param {string} config.bucket.production - override the production S3 bucket name
+ * @param {string} config.bucket.folder - set an optional bucket folder to work within
+ * @param {string} config.cacheControl - set a custom cache-control header value
+ * @param {boolean} config.passthru - return null if no file is found
+ * @param {Object} config.headers - map of custom response headers
+ * @param {string} config.sandboxPath - local filesystem path for Sandbox static assets
+ * @param {boolean} config.spa - forces index.html no matter the folder depth
  *
- * @returns HTTPLambda - an HTTP Lambda function that proxies calls to S3
+ * @returns {function} HTTPLambda - an HTTP Lambda function that proxies calls to S3
  */
 function asap (config = {}) {
   return async function handler (req) {

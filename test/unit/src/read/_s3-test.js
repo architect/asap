@@ -1,4 +1,4 @@
-let isNode18 = require('../../../../src/read/_is-node-18')
+let isNode18 = require('../../../../src/lib/is-node-18')
 let test = require('tape')
 let proxyquire = require('proxyquire')
 let { join } = require('path')
@@ -7,15 +7,15 @@ let { gzipSync } = require('zlib')
 if (!isNode18) {
 
   /**
- * We'll test for basic response formatting, templatization, and headers
- *
- * Note: at first glance, it seems like there should be more to test in this method
- * However, deeper testing for content-type, cache-control, etc. are found in other tests, so this should cover pretty much every critical path
- */
+   * We'll test for basic response formatting, templatization, and headers
+   *
+   * Note: at first glance, it seems like there should be more to test in this method
+   * However, deeper testing for content-type, cache-control, etc. are found in other tests, so this should cover pretty much every critical path
+   */
 
   // Stubs
   // eslint-disable-next-line
-let prettyStub = async () => 'pretty'
+  let prettyStub = async () => 'pretty'
   // S3
   let enable304
   let errorState
@@ -181,8 +181,8 @@ let prettyStub = async () => 'pretty'
   })
 
   /**
- * These fingerprint tests are AWS-specific: we don't do fingerprint lookups locally
- */
+  * These fingerprint tests are AWS-specific: we don't do fingerprint lookups locally
+  */
   test('Fingerprint: fall back to non-fingerprinted file when requested file is not found in static manifest', async t => {
     setup()
     t.plan(2)

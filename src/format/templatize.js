@@ -16,7 +16,7 @@ module.exports = function templatizeResponse (params) {
       let Key = match.slice(start, match.length - 3)
       // Normalize around no leading slash for static manifest lookups
       let startsWithSlash = Key.startsWith('/')
-      let lookup = startsWithSlash ? Key.substr(1) : Key
+      let lookup = startsWithSlash ? Key.substring(1) : Key
       if (assets && assets[lookup] && !isLocal) {
         Key = assets[lookup]
         Key = startsWithSlash ? `/${Key}` : Key
