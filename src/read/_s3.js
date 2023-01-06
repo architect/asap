@@ -1,7 +1,7 @@
 let { existsSync, readFileSync } = require('fs')
 let { extname, join } = require('path')
 
-let isNode18 = require('./_is-node-18')
+let _isNode18 = require('../lib/is-node-18')
 let _isHTMLorJSON = require('../lib/is-html-json')
 let binaryTypes = require('../lib/binary-types')
 let binaryExts = require('../lib/binary-extensions')
@@ -17,15 +17,15 @@ let { decompress } = require('../format/compress')
  * Reads a file from S3, resolving an HTTP Lambda friendly payload
  *
  * @param {Object} params
- * @param {String} params.Key
- * @param {String} params.Bucket
- * @param {String} params.IfNoneMatch
- * @param {String} params.isFolder
+ * @param {string} params.Key
+ * @param {string} params.Bucket
+ * @param {string} params.IfNoneMatch
+ * @param {string} params.isFolder
+ * @param {string} params.rootPath
  * @param {Object} params.config
- * @returns {Object} { statusCode, headers, body }
+ * @returns {Promise<Object>} { statusCode, headers, body }
  */
 module.exports = async function readS3 (params) {
-
   let { Bucket, Key, IfNoneMatch, isFolder, config, rootPath } = params
   let { ARC_STATIC_PREFIX } = process.env
   let prefix = ARC_STATIC_PREFIX || config.bucket && config.bucket.folder
@@ -75,7 +75,7 @@ module.exports = async function readS3 (params) {
     }
 
     let method
-    if (isNode18) {
+    if (_isNode18) {
       // eslint-disable-next-line
       let { S3 } = require('@aws-sdk/client-s3')
       let s3 = new S3({ region: process.env.AWS_REGION || 'us-west-2' })
@@ -127,7 +127,7 @@ module.exports = async function readS3 (params) {
       response.body = result.Body
 
       let isBinary = binaryTypes.includes(result.ContentType) ||
-                     binaryExts.includes(extname(Key).substr(1))
+        binaryExts.includes(extname(Key).substring(1))
 
       // Handle templating
       response = templatizeResponse({
@@ -177,7 +177,7 @@ let staticAssets
 let staticManifest = join(process.cwd(), 'node_modules', '@architect', 'shared', 'static.json')
 if (staticAssets === false) { /* noop */ }
 else if (existsSync(staticManifest) && !staticAssets) {
-  staticAssets = JSON.parse(readFileSync(staticManifest))
+  staticAssets = JSON.parse(readFileSync(staticManifest).toString())
 }
 else {
   staticAssets = false

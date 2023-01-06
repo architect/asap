@@ -19,7 +19,7 @@ let pretty = require('./_pretty')
  * @param {String} params.IfNoneMatch
  * @param {String} params.isFolder
  * @param {Object} params.config
- * @returns {Object} { statusCode, headers, body }
+ * @returns {Promise<Object>} { statusCode, headers, body }
  */
 module.exports = async function readLocal (params) {
 
@@ -52,7 +52,7 @@ module.exports = async function readLocal (params) {
     let matchedETag = false
 
     // If the static asset manifest has the key, use that, otherwise fall back to the original Key
-    let contentType = commonMimeTypes[extname(Key).substr(1)] || 'application/octet-stream'
+    let contentType = commonMimeTypes[extname(Key).substring(1)] || 'application/octet-stream'
 
     if (!existsSync(filePath)) {
       if (config.passthru) return null
@@ -76,7 +76,7 @@ module.exports = async function readLocal (params) {
 
     // No ETag found, return the blob
     if (!matchedETag) {
-      let isBinary = binaryExts.includes(extname(Key).substr(1))
+      let isBinary = binaryExts.includes(extname(Key).substring(1))
 
       // Handle templating
       response = templatizeResponse({

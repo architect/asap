@@ -1,4 +1,4 @@
-let isNode18 = require('../../../../src/read/_is-node-18')
+let isNode18 = require('../../../../src/lib/is-node-18')
 let test = require('tape')
 let mockfs = require('mock-fs')
 let proxyquire = require('proxyquire')
@@ -21,12 +21,13 @@ class S3Stub {
         } }
 
         // Failed requests (aws-sdk completely blows up)
-        // eslint-disable-next-line
-        let thrower = { promise: async function () {
-          let err = new Error(errorState)
-          err.name = errorState
-          throw err
-        } }
+        let thrower = {
+          promise: async function () {
+            let err = new Error(errorState)
+            err.name = errorState
+            throw err
+          }
+        }
 
         if (isFolder) {
           if (Key.includes('ok/hi')) return got

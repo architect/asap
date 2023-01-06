@@ -5,7 +5,7 @@ let { join } = require('path')
 let crypto = require('crypto')
 let env = process.env.ARC_ENV
 let sandboxPath = join(process.cwd(), 'public')
-let isNode18 = require('../../../../src/read/_is-node-18')
+let isNode18 = require('../../../../src/lib/is-node-18')
 if (!isNode18) {
 
 /**

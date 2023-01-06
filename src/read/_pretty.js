@@ -1,4 +1,4 @@
-let isNode18 = require('./_is-node-18')
+let _isNode18 = require('../lib/is-node-18')
 let { existsSync, readFileSync } = require('fs')
 let { join } = require('path')
 let { httpError } = require('../lib/error')
@@ -47,7 +47,7 @@ module.exports = async function pretty (params) {
   }
 
   async function getS3 (Key) {
-    if (isNode18) {
+    if (_isNode18) {
       // eslint-disable-next-line
       let { S3 } = require('@aws-sdk/client-s3')
       let s3 = new S3({ region: process.env.AWS_REGION || 'us-west-2' })
