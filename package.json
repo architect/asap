@@ -27,10 +27,10 @@
   "devDependencies": {
     "@architect/eslint-config": "~2.0.1",
     "@architect/req-res-fixtures": "git+https://github.com/architect/req-res-fixtures.git",
-    "@aws-sdk/client-s3": "~3.216.0",
+    "@aws-sdk/client-s3": "3.188.0",
     "aws-sdk": "2.1055.0",
     "cross-env": "7.0.3",
-    "eslint": "~8.28.0",
+    "eslint": "~8.31.0",
     "mime-types": "~2.1.35",
     "mock-fs": "~5.2.0",
     "nyc": "~15.1.0",

@@ -2,6 +2,14 @@
 
 ---
 
+## [5.1.1] 2023-01-06
+
+### Fixed
+
+- Fixed invalid S3 data returns in `nodejs18.x` with AWS SDK v3
+
+---
+
 ## [5.1.0] 2022-11-24
 
 ### Added
