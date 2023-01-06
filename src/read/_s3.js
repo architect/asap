@@ -82,14 +82,14 @@ module.exports = async function readS3 (params) {
       method = async params => {
         let command = new GetObjectCommand(params)
         let res = await client.send(command)
-        const streamToString = (stream) => new Promise((resolve, reject) => {
-          const chunks = []
-          stream.on('data', (chunk) => chunks.push(chunk))
+        let streamToString = stream => new Promise((resolve, reject) => {
+          let chunks = []
+          stream.on('data', chunk => chunks.push(chunk))
           stream.on('error', reject)
-          stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+          stream.on('end', () => resolve(Buffer.concat(chunks)))
         })
-        let bod = await streamToString(res.Body)
-        return { ...res, ...{ Body: bod } }
+        let Body = await streamToString(res.Body)
+        return { ...res, ...{ Body } }
       }
     }
     else {
