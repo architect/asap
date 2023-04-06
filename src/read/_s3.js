@@ -28,7 +28,7 @@ let { decompress } = require('../format/compress')
 module.exports = async function readS3 (params) {
   let { Bucket, Key, IfNoneMatch, isFolder, config, rootPath } = params
   let { ARC_STATIC_PREFIX } = process.env
-  let prefix = ARC_STATIC_PREFIX || config.bucket && config.bucket.folder
+  let prefix = ARC_STATIC_PREFIX || config?.bucket?.folder
   let assets = config.assets || staticAssets
   let headers = {}
   let response = {}
@@ -39,7 +39,7 @@ module.exports = async function readS3 (params) {
 
     // Try to interpolate HTML/JSON requests to fingerprinted filenames
     let isHTMLorJSON = _isHTMLorJSON(Key)
-    if (assets && assets[Key] && isHTMLorJSON) {
+    if (assets?.[Key] && isHTMLorJSON) {
       // Not necessary to flag response formatter for anti-caching
       // Those headers are already set in S3 file metadata
       Key = assets[Key]
@@ -48,7 +48,7 @@ module.exports = async function readS3 (params) {
     /**
      * Check for possible fingerprint upgrades and forward valid requests
      */
-    if (assets && assets[Key] && !isHTMLorJSON) {
+    if (assets?.[Key] && !isHTMLorJSON) {
       let location = rootPath
         ? `/${rootPath}/_static/${assets[Key]}`
         : `/_static/${assets[Key]}`

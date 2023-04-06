@@ -35,8 +35,8 @@ function asap (config = {}) {
      */
     let configBucket = config.bucket
     let bucketSetting = isProduction
-      ? configBucket && configBucket['production']
-      : configBucket && configBucket['staging']
+      ? configBucket?.['production']
+      : configBucket?.['staging']
     // Ok, all that out of the way, let's set the actual bucket, eh?
     let needBucket = config.env !== 'testing'
     let Bucket = ARC_STATIC_BUCKET || bucketSetting
@@ -49,7 +49,7 @@ function asap (config = {}) {
      */
     let spa = ARC_STATIC_SPA === 'false'
       ? false
-      : config && config.spa
+      : config?.spa
     if (!spa) config.spa = false
     if (spa) {
       // If SPA: force index.html
@@ -72,7 +72,7 @@ function asap (config = {}) {
     /**
      * Alias - enable Keys to be manually overridden
      */
-    let aliasing = config && config.alias && config.alias[path]
+    let aliasing = config?.alias?.[path]
     if (aliasing) {
       Key = config.alias[path].substring(1) // Always remove leading slash
     }
@@ -81,15 +81,15 @@ function asap (config = {}) {
      * REST API [deprecated]: flag `staging/`, `production/` requests
      */
     let rootPath
-    let reqPath = req.requestContext && req.requestContext.path
+    let reqPath = req?.requestContext?.path
     if (deprecated && reqPath) {
-      if (reqPath && reqPath.startsWith('/staging/')) rootPath = 'staging'
-      if (reqPath && reqPath.startsWith('/production/')) rootPath = 'production'
+      if (reqPath?.startsWith('/staging/')) rootPath = 'staging'
+      if (reqPath?.startsWith('/production/')) rootPath = 'production'
     }
 
     // Normalize if-none-match header to lower case; it may differ between environments
-    let find = k => k.toLowerCase() === 'if-none-match'
-    let IfNoneMatch = req.headers && req.headers[Object.keys(req.headers).find(find)]
+    let findHeader = k => k.toLowerCase() === 'if-none-match'
+    let IfNoneMatch = req.headers?.[Object.keys(req.headers).find(findHeader)]
 
     let read = reader({ env: config.env, sandboxPath: config.sandboxPath })
     return read({ Key, Bucket, IfNoneMatch, isFolder, config, rootPath })

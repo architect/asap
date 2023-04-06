@@ -24,7 +24,7 @@ module.exports = async function pretty (params) {
 
   function getKey (Key) {
     let lookup = Key.replace(prefix + '/', '')
-    if (assets && assets[lookup]) {
+    if (assets?.[lookup]) {
       Key = assets[lookup]
       Key = prefix ? `${prefix}/${Key}` : Key
     }

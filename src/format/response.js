@@ -15,7 +15,7 @@ module.exports = function normalizeResponse (params) {
   response.headers['content-type'] =
     response.headers['content-type'] ||
     response.headers['Content-Type'] ||
-    result && result.ContentType ||
+    result?.ContentType ||
     'application/octet-stream'
 
   // Set caching headers
@@ -30,7 +30,7 @@ module.exports = function normalizeResponse (params) {
   else if (isHTMLorJSON(Key)) {
     response.headers['cache-control'] = 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
   }
-  else if (result && result.CacheControl) {
+  else if (result?.CacheControl) {
     response.headers['cache-control'] = result.CacheControl
   }
   else {
