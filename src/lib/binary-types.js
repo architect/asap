@@ -38,6 +38,7 @@ module.exports = [
   // Video
   'video/3gpp',
   'video/mp2t',
+  'video/mp4',
   'video/mpeg',
   'video/ogg',
   'video/quicktime',
