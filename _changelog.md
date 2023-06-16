@@ -2,6 +2,16 @@
 
 ---
 
+## [6.0.0] 2023-06-15
+
+### Changed
+
+- AWS has deprecated Lambda `nodejs12.x`; `@architect/asap` 6.0 now assumes `nodejs14.x` or higher
+- Updated AWS SDK versions to sync up with the rest of Architect following v10.12
+- Added some additional binary media types
+
+---
+
 ## [5.1.1] 2023-01-06
 
 ### Fixed
