@@ -105,7 +105,7 @@ module.exports = async function readS3 (params) {
     }
     catch (err) {
       // ETag matches (getObject error code of NotModified), so don't transit the whole file
-      if (err.code === 'NotModified') {
+      if (err.code === 'NotModified' || err['$metadata'].httpStatusCode === 304) {
         matchedETag = true
         headers.etag = IfNoneMatch
         response = {
