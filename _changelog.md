@@ -2,6 +2,14 @@
 
 ---
 
+## [6.0.1] 2023-07-07
+
+### Fixed
+
+- Fixed 304 (not modified) returns in `nodejs18.x` with AWS SDK v3
+
+---
+
 ## [6.0.0] 2023-06-15
 
 ### Changed
