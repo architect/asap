@@ -1,5 +1,5 @@
-let { existsSync, readFileSync } = require('fs')
-let { extname, join, sep } = require('path')
+let { existsSync, readdirSync, readFileSync, statSync } = require('fs')
+let { extname, join, parse, sep } = require('path')
 let crypto = require('crypto')
 
 let commonMimeTypes = require('../lib/common-mime-types')
@@ -54,7 +54,16 @@ module.exports = async function readLocal (params) {
     // If the static asset manifest has the key, use that, otherwise fall back to the original Key
     let contentType = commonMimeTypes[extname(Key).substring(1)] || 'application/octet-stream'
 
-    if (!existsSync(filePath)) {
+    // Node may not be fully case sensitive, so read the files out of the folder
+    let { dir, base } = parse(filePath)
+    let found = false
+    if (existsSync(dir)) {
+      let files = readdirSync(dir)
+      found = files.includes(base) && statSync(filePath).isFile()
+    }
+    else if (config.passthru) return null
+
+    if (!found) {
       if (config.passthru) return null
       return await pretty({ Key: filePath, config, isFolder, sandboxPath })
     }

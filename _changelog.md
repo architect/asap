@@ -2,6 +2,14 @@
 
 ---
 
+## [6.0.2] 2023-07-20
+
+### Fixed
+
+- Ensure improper casing does not result in false-positive local file reads; thanks @andybee!
+
+---
+
 ## [6.0.1] 2023-07-07
 
 ### Fixed

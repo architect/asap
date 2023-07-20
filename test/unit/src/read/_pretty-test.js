@@ -208,12 +208,13 @@ if (!isNode18) {
   })
 
   test('Return the default 404', async t => {
-    t.plan(4)
+    t.plan(6)
+    let result
     // AWS
     process.env.ARC_ENV = 'staging'
     Key = 'cantfindme'
     errorState = 'NoSuchKey'
-    let result = await pretty({
+    result = await pretty({
       Bucket,
       Key,
       headers,
@@ -223,7 +224,7 @@ if (!isNode18) {
     t.match(result.body, /NoSuchKey/, 'Error message included in response from S3')
 
     // Local
-    process.env.ARC_ENV = 'staging'
+    process.env.ARC_ENV = 'testing'
     // Update mockfs to find a nothing
     mockfs({})
     Key = 'cantfindme'
@@ -234,6 +235,21 @@ if (!isNode18) {
       headers,
       isFolder,
       sandboxPath,
+    })
+    t.equal(result.statusCode, 404, 'Returns statusCode of 404 if local file is not found')
+    t.match(result.body, /NoSuchKey/, 'Error message included in response from local')
+
+    // Check casing
+    mockfs({
+      '404.HTML': 'yo'
+    })
+    errorState = 'NoSuchKey'
+    result = await pretty({
+      Bucket,
+      Key,
+      headers,
+      isFolder,
+      sandboxPath: '',
     })
     t.equal(result.statusCode, 404, 'Returns statusCode of 404 if local file is not found')
     t.match(result.body, /NoSuchKey/, 'Error message included in response from local')

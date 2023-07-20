@@ -1,6 +1,6 @@
 let _isNode18 = require('../lib/is-node-18')
-let { existsSync, readFileSync } = require('fs')
-let { join } = require('path')
+let { existsSync, readdirSync, readFileSync, statSync } = require('fs')
+let { join, parse } = require('path')
 let { httpError } = require('../lib/error')
 
 let s3
@@ -36,7 +36,14 @@ module.exports = async function pretty (params) {
     if (!file.startsWith(sandboxPath)) {
       file = join(sandboxPath, file)
     }
-    if (!existsSync(file)) {
+    // Node may not be fully case sensitive, so read the files out of the folder
+    let { dir, base } = parse(file)
+    let found = false
+    if (existsSync(dir)) {
+      let files = readdirSync(dir)
+      found = files.includes(base) && statSync(file).isFile()
+    }
+    if (!found) {
       let err = ReferenceError(`NoSuchKey: ${Key} not found`)
       err.name = 'NoSuchKey'
       throw err
