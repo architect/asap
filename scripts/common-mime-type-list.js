@@ -102,4 +102,8 @@ module.exports = [
   'audio/mp4',
   'image/jp2',
   'text/pdf',
+  'font/woff',
+  'font/woff2',
+  'font/ttf',
+  'font/otf',
 ]
