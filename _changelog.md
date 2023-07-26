@@ -2,6 +2,14 @@
 
 ---
 
+## [6.0.3] 2023-07-26
+
+### Added
+
+- Added fonts to binary mime types; thanks @sjorsrijsdam!
+
+---
+
 ## [6.0.2] 2023-07-20
 
 ### Fixed
