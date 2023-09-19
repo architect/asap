@@ -7,7 +7,7 @@
     "lint": "eslint . --fix",
     "rc": "npm version prerelease --preid RC",
     "test": "npm run lint && npm run coverage",
-    "test:unit": "cross-env tape 'test/unit/**/*-test.js' | tap-spec",
+    "test:unit": "cross-env tape 'test/unit/**/*-test.js' | tap-arc",
     "coverage": "nyc --reporter=lcov --reporter=text npm run test:unit",
     "vendor": "node scripts/generate-mime-files.js"
   },
@@ -25,19 +25,18 @@
     "src/*"
   ],
   "devDependencies": {
-    "@architect/eslint-config": "~2.1.1",
+    "@architect/eslint-config": "~2.1.2",
     "@architect/req-res-fixtures": "git+https://github.com/architect/req-res-fixtures.git",
     "@aws-sdk/client-s3": "3.188.0",
     "aws-sdk": "^2.1363.0",
     "cross-env": "7.0.3",
-    "eslint": "~8.37.0",
+    "eslint": "~8.49.0",
     "mime-types": "~2.1.35",
     "mock-fs": "~5.2.0",
     "nyc": "~15.1.0",
     "proxyquire": "~2.1.3",
-    "tap-arc": "~0.3.5",
-    "tap-spec": "~5.0.0",
-    "tape": "~5.6.3"
+    "tap-arc": "~1.0.0",
+    "tape": "~5.6.6"
   },
   "keywords": [
     "aws",
