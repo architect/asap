@@ -2,6 +2,14 @@
 
 ---
 
+## [6.0.4] 2023-11-20
+
+### Fixed
+
+- Clean up SPA config a bit; ensure `ARC_STATIC_SPA=true` enables SPA; thanks @busticated!
+
+---
+
 ## [6.0.3] 2023-07-26
 
 ### Added

@@ -47,11 +47,10 @@ function asap (config = {}) {
     /**
      * Configure SPA + set up the file to be requested
      */
-    let spa = ARC_STATIC_SPA === 'false'
-      ? false
-      : config?.spa
-    if (!spa) config.spa = false
-    if (spa) {
+    config.spa = config.spa || false
+    if (ARC_STATIC_SPA === 'true') config.spa = true
+    if (ARC_STATIC_SPA === 'false') config.spa = false
+    if (config.spa) {
       // If SPA: force index.html
       Key = isFolder ? 'index.html' : path.substring(1)
     }

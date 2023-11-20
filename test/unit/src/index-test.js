@@ -60,51 +60,64 @@ test('Config: bucket', async t => {
 })
 
 test('Config: SPA', async t => {
-  t.plan(6)
+  t.plan(14)
+  let proxy, result
+  let bucket = { staging: stagingBucket }
 
-  // Test spa:true to get /
-  let proxy = asap({
-    bucket: {
-      staging: stagingBucket
-    },
-    spa: true
-  })
-  let result = await proxy(req)
-  t.equal(result.Key, 'index.html', 'spa:true calls root index.html requesting /')
-
-  // Test spa: true to get /{proxy+}
-  proxy = asap({
-    bucket: {
-      staging: stagingBucket
-    },
-    spa: true
-  })
-  result = await proxy(proxyReq)
-  t.equal(result.Key, 'index.html', 'spa:true always calls root index.html, even when not requesting /')
-
-  // Test spa:false
-  process.env.ARC_STATIC_SPA = 'false'
-  proxy = asap({
-    bucket: {
-      staging: stagingBucket
-    },
-    spa: true
-  })
-  result = await proxy(proxyReq)
-  t.notEqual(result.Key, 'index.html', 'spa:false does not necessarily call for index.html')
-  t.notOk(result.config.spa, `ARC_STATIC_SPA = 'false' disables spa config`)
-
-  // Test spa:false with root
+  /**
+   * SPA enabled
+   */
+  // Test spa: true to `get /`
+  proxy = asap({ bucket, spa: true })
   result = await proxy(req)
-  t.equal(result.Key, 'index.html', 'spa:false still calls for root index.html, when requesting /')
+  t.equal(result.Key, 'index.html', 'ASAP calls root index.html requesting /')
+  t.equal(result.config.spa, true, `SPA config is enabled`)
 
-  // Test spa:false with folder
+  // Test spa: true to `get /{proxy+}`
+  proxy = asap({ bucket, spa: true })
+  result = await proxy(proxyReq)
+  t.equal(result.Key, 'index.html', 'ASAP calls root index.html, even when not requesting /')
+  t.equal(result.config.spa, true, `SPA config is enabled`)
+
+  // Test ARC_STATIC_SPA: 'true' > spa: false
+  process.env.ARC_STATIC_SPA = 'true'
+  proxy = asap({ bucket, spa: false })
+  result = await proxy(proxyReq)
+  t.equal(result.Key, 'index.html', 'ASAP always calls root index.html, even when not requesting /')
+  t.equal(result.config.spa, true, `SPA config is enabled`)
+  delete process.env.ARC_STATIC_SPA
+
+  /**
+   * SPA disabled
+   */
+  // Test spa: false with root
+  proxy = asap({ bucket, spa: false })
+  result = await proxy(req)
+  t.equal(result.Key, 'index.html', 'ASAP calls root index.html requesting /')
+  t.equal(result.config.spa, false, `SPA config is disabled`)
+
+  // Test spa: false to `get /{proxy+}`
+  proxy = asap({ bucket, spa: false })
+  result = await proxy(proxyReq)
+  t.equal(result.Key, 'nature/hiking/index.html', 'ASAP to a dir calls $DIR/index.html')
+  t.equal(result.config.spa, false, `SPA config is disabled`)
+
+  // Test spa: false with folder
   let trailingSlash = JSON.parse(JSON.stringify(proxyReq))
   trailingSlash.path = trailingSlash.path + '/'
   result = await proxy(trailingSlash)
-  t.equal(result.Key, 'nature/hiking/index.html', 'spa:false to a dir calls $DIR/index.html')
-  console.log(result)
+  t.equal(result.Key, 'nature/hiking/index.html', 'ASAP to a dir calls $DIR/index.html')
+  t.equal(result.config.spa, false, `SPA config is disabled`)
+
+  // Test ARC_STATIC_SPA = 'false' > spa: true
+  process.env.ARC_STATIC_SPA = 'false'
+  proxy = asap({ bucket, spa: true })
+  result = await proxy(proxyReq)
+  t.equal(result.Key, 'nature/hiking/index.html', 'ASAP to a dir calls $DIR/index.html')
+  t.equal(result.config.spa, false, `SPA config is disabled`)
   delete process.env.ARC_STATIC_SPA
+
+  t.end()
 })
 
 /*
