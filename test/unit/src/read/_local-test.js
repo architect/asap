@@ -1,10 +1,12 @@
 let test = require('tape')
-let mockfs = require('mock-fs')
+let mockTmp = require('mock-tmp')
 let proxyquire = require('proxyquire')
 let { join } = require('path')
 let crypto = require('crypto')
 let env = process.env.ARC_ENV
-let sandboxPath = join(process.cwd(), 'public')
+let public = 'public'
+let sandboxPath
+let setSandboxPath = tmp => sandboxPath = join(tmp, public)
 let isNode18 = require('../../../../src/lib/is-node-18')
 if (!isNode18) {
   /**
@@ -39,7 +41,7 @@ if (!isNode18) {
   let b64 = buf => Buffer.from(buf).toString('base64')
   function reset () {
     process.env.ARC_ENV = env
-    mockfs.restore()
+    mockTmp.reset()
   }
 
   // File contents
@@ -75,9 +77,10 @@ if (!isNode18) {
 
   test('Local proxy reader returns formatted response from text payload (200)', async t => {
     t.plan(6)
-    mockfs({
-      [join(sandboxPath, imgName)]: imgContents
+    let tmp = mockTmp({
+      [join(public, imgName)]: imgContents
     })
+    setSandboxPath(tmp)
     let result = await readLocal(read())
     t.equal(result.statusCode, 200, 'Returns statusCode: 200')
     t.equal(result.headers['cache-control'], defaultCacheControl, 'Returns correct cache-control')
@@ -90,9 +93,10 @@ if (!isNode18) {
 
   test('Local proxy reader returns formatted response from binary payload (200)', async t => {
     t.plan(2)
-    mockfs({
-      [join(sandboxPath, imgName)]: Buffer.from(binary)
+    let tmp = mockTmp({
+      [join(public, imgName)]: Buffer.from(binary)
     })
+    setSandboxPath(tmp)
     let result = await readLocal(read())
     t.equal(result.headers['etag'], hash(Buffer.from(binary)), 'Returns correct ETag')
     t.equal(result.body, b64(binary), 'Returns correct body')
@@ -105,9 +109,10 @@ if (!isNode18) {
     process.env.ARC_STATIC_PREFIX = 'foobar'
     t.ok(process.env.ARC_STATIC_PREFIX, 'ARC_STATIC_PREFIX set')
 
-    mockfs({
-      [join(sandboxPath, imgName)]: imgContents
+    let tmp = mockTmp({
+      [join(public, imgName)]: imgContents
     })
+    setSandboxPath(tmp)
     let params = read({ Key: `${process.env.ARC_STATIC_PREFIX}/${imgName}` })
     let result = await readLocal(params)
     t.equal(result.statusCode, 200, 'Returns statusCode: 200')
@@ -122,9 +127,10 @@ if (!isNode18) {
 
   test('Local proxy reader returns 304 (aka S3 NotModified)', async t => {
     t.plan(2)
-    mockfs({
-      [join(sandboxPath, imgName)]: imgContents
+    let tmp = mockTmp({
+      [join(public, imgName)]: imgContents
     })
+    setSandboxPath(tmp)
     let params = read({ IfNoneMatch: hash(imgContents) })
     let result = await readLocal(params)
     t.equal(result.statusCode, 304, 'Returns statusCode of 304 if ETag matches')
@@ -136,10 +142,11 @@ if (!isNode18) {
     t.plan(3)
     // Tests to ensure ${ARC_STATIC('foo.gif')} doesn't use fingerprinted filenames locally
     process.env.ARC_ENV = 'staging'
-    mockfs({
-      [join(sandboxPath, mdName)]: mdContents,
-      [join(sandboxPath, imgName)]: imgContents
+    let tmp = mockTmp({
+      [join(public, mdName)]: mdContents,
+      [join(public, imgName)]: imgContents
     })
+    setSandboxPath(tmp)
     let params = read({ Key: mdName, config: { assets: staticStub, sandboxPath } })
     let result = await readLocal(params)
     t.notEqual(result.body, b64(mdContents), `Contents containing template calls mutated: ${dec(result.body)}`)
@@ -150,9 +157,10 @@ if (!isNode18) {
 
   test('Local proxy reader hands off to pretty URLifier if file case does not match', async t => {
     t.plan(1)
-    mockfs({
-      [join(sandboxPath, mdName)]: mdContents,
+    let tmp = mockTmp({
+      [join(public, mdName)]: mdContents,
     })
+    setSandboxPath(tmp)
     let params = read({ Key: mdName.toUpperCase(), config: { sandboxPath } })
     let result = await readLocal(params)
     t.equal(result, 'pretty', 'File not found returns response from pretty')
