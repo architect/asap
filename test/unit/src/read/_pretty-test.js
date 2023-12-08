@@ -1,6 +1,6 @@
 let isNode18 = require('../../../../src/lib/is-node-18')
 let test = require('tape')
-let mockfs = require('mock-fs')
+let mockTmp = require('mock-tmp')
 let proxyquire = require('proxyquire')
 let { join } = require('path')
 let env = process.env.ARC_ENV
@@ -42,7 +42,7 @@ class S3Stub {
 
 let reset = () => {
   Key = isFolder = errorState = undefined
-  mockfs.restore()
+  mockTmp.reset()
 }
 
 let sut = join(process.cwd(), 'src', 'read', '_pretty')
@@ -50,6 +50,7 @@ let pretty
 
 let Key
 let isFolder
+let tmp
 let Bucket = 'a-bucket'
 let headers = {}
 
@@ -105,7 +106,7 @@ if (!isNode18) {
     // Local
     process.env.ARC_ENV = 'testing'
     let msg = 'got ok/hi/index.html from local!'
-    mockfs({
+    tmp = mockTmp({
       'ok/hi/index.html': buf(msg)
     })
     result = await pretty({
@@ -113,7 +114,7 @@ if (!isNode18) {
       Key,
       headers,
       isFolder,
-      sandboxPath: '',
+      sandboxPath: tmp,
     })
     t.equal(result.body, msg, 'Successfully peeked into a local folder without a trailing slash')
     reset()
@@ -192,15 +193,15 @@ if (!isNode18) {
 
     // Local
     process.env.ARC_ENV = 'testing'
-    // Update mockfs to find a 404
+    // Update mockTmp to find a 404
     let msg = 'got 404 from local!'
-    mockfs({ '404.html': buf(msg) })
+    let tmp = mockTmp({ '404.html': buf(msg) })
     result = await pretty({
       Bucket,
       Key,
       headers,
       isFolder,
-      sandboxPath: '',
+      sandboxPath: tmp,
     })
     t.equal(result.statusCode, 404, 'Returns statusCode of 404 with custom 404 error from local')
     t.equal(result.body, msg, 'Output is custom 404 page from local')
@@ -225,8 +226,6 @@ if (!isNode18) {
 
     // Local
     process.env.ARC_ENV = 'testing'
-    // Update mockfs to find a nothing
-    mockfs({})
     Key = 'cantfindme'
     errorState = 'NoSuchKey'
     result = await pretty({
@@ -240,7 +239,7 @@ if (!isNode18) {
     t.match(result.body, /NoSuchKey/, 'Error message included in response from local')
 
     // Check casing
-    mockfs({
+    tmp = mockTmp({
       '404.HTML': 'yo'
     })
     errorState = 'NoSuchKey'
@@ -249,7 +248,7 @@ if (!isNode18) {
       Key,
       headers,
       isFolder,
-      sandboxPath: '',
+      sandboxPath: tmp,
     })
     t.equal(result.statusCode, 404, 'Returns statusCode of 404 if local file is not found')
     t.match(result.body, /NoSuchKey/, 'Error message included in response from local')
