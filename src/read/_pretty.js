@@ -1,14 +1,7 @@
-let _isNode18 = require('../lib/is-node-18')
 let { existsSync, readdirSync, readFileSync, statSync } = require('fs')
 let { join, parse } = require('path')
+let getS3 = require('../lib/get-s3')
 let { httpError } = require('../lib/error')
-
-let s3
-if (process.env.__TESTING__) {
-  // eslint-disable-next-line
-  let S3 = require('aws-sdk/clients/s3')
-  s3 = new S3
-}
 
 /**
  * Peek into a dir without a trailing slash to see if it's got an index.html file
@@ -31,8 +24,7 @@ module.exports = async function pretty (params) {
     return Key
   }
 
-  // eslint-disable-next-line
-  async function getLocal (file) {
+  async function getLocal ({ Key: file }) {
     if (!file.startsWith(sandboxPath)) {
       file = join(sandboxPath, file)
     }
@@ -53,30 +45,13 @@ module.exports = async function pretty (params) {
     }
   }
 
-  async function getS3 (Key) {
-    if (_isNode18) {
-      // eslint-disable-next-line
-      let { S3 } = require('@aws-sdk/client-s3')
-      let s3 = new S3({ region: process.env.AWS_REGION || 'us-west-2' })
-      return s3.getObject({ Bucket, Key })
-    }
-    else {
-      if (!process.env.__TESTING__) {
-        // eslint-disable-next-line
-        let S3 = require('aws-sdk/clients/s3')
-        s3 = new S3
-      }
-      return s3.getObject({ Bucket, Key }).promise()
-    }
-  }
-
-  async function get (file) {
-    let getter = local ? getLocal : getS3
+  async function get (Key) {
+    let getter = local ? getLocal : await getS3()
     try {
-      return await getter(file)
+      return await getter({ Bucket, Key })
     }
     catch (err) {
-      if (err.name === 'NoSuchKey') {
+      if (err.name === 'NoSuchKey' || err.code === 'NoSuchKey') {
         err.statusCode = 404
         return err
       }

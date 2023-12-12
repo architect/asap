@@ -24,6 +24,10 @@
   "files": [
     "src/*"
   ],
+  "dependencies": {
+    "@aws-lite/client": "~0.12.2",
+    "@aws-lite/s3": "~0.1.4"
+  },
   "devDependencies": {
     "@architect/eslint-config": "~2.1.2",
     "@architect/req-res-fixtures": "git+https://github.com/architect/req-res-fixtures.git",

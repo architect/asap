@@ -1,7 +1,7 @@
 let { existsSync, readFileSync } = require('fs')
 let { extname, join } = require('path')
 
-let _isNode18 = require('../lib/is-node-18')
+let getS3 = require('../lib/get-s3')
 let _isHTMLorJSON = require('../lib/is-html-json')
 let binaryTypes = require('../lib/binary-types')
 let binaryExts = require('../lib/binary-extensions')
@@ -74,38 +74,14 @@ module.exports = async function readS3 (params) {
       options.IfNoneMatch = IfNoneMatch
     }
 
-    let method
-    if (_isNode18) {
-      // eslint-disable-next-line
-      let { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
-      let client = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' })
-      method = async params => {
-        let command = new GetObjectCommand(params)
-        let res = await client.send(command)
-        let streamToString = stream => new Promise((resolve, reject) => {
-          let chunks = []
-          stream.on('data', chunk => chunks.push(chunk))
-          stream.on('error', reject)
-          stream.on('end', () => resolve(Buffer.concat(chunks)))
-        })
-        let Body = await streamToString(res.Body)
-        return { ...res, ...{ Body } }
-      }
-    }
-    else {
-      // eslint-disable-next-line
-      let S3 = require('aws-sdk/clients/s3')
-      let s3 = new S3
-      method = params => s3.getObject(params).promise()
-    }
-
+    let s3 = await getS3()
     let result
     try {
-      result = await method(options)
+      result = await s3(options)
     }
     catch (err) {
       // ETag matches (getObject error code of NotModified), so don't transit the whole file
-      if (err.code === 'NotModified' || err['$metadata']?.httpStatusCode === 304) {
+      if (err.code === 'NotModified' || err.statusCode === 304) {
         matchedETag = true
         headers.etag = IfNoneMatch
         response = {
