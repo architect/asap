@@ -2,6 +2,15 @@
 
 ---
 
+## [6.1.0] 2023-12-12
+
+### Changed
+
+- ASAP just got a lot faster courtesy of [aws-lite](https://github.com/architect/aws-lite/)!
+- As such, ASAP no longer relies on `aws-sdk` / `@aws-sdk/s3`
+
+---
+
 ## [6.0.4] 2023-11-20
 
 ### Fixed
