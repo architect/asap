@@ -2,12 +2,14 @@
 
 ---
 
-## [6.1.0] 2023-12-12
+## [7.0.0] 2023-12-12
 
 ### Changed
 
-- ASAP just got a lot faster courtesy of [aws-lite](https://github.com/architect/aws-lite/)!
+- ASAP just got a lot faster courtesy of [aws-lite](https://aws-lite.org)!
 - As such, ASAP no longer relies on `aws-sdk` / `@aws-sdk/s3`
+- Added Node.js 20.x to test matrix
+- Breaking change: removed support for Node.js 14.x (now EOL, and no longer available to created in AWS Lambda)
 
 ---
 
