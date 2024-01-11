@@ -81,6 +81,7 @@ module.exports = {
   ttf: `${d}/ttf`,
   woff: `${d}/woff`,
   woff2: `${d}/woff2`,
+  avif: `${c}/avif`,
   gif: `${c}/gif`,
   jp2: `${c}/jp2`,
   jpg2: `${c}/jp2`,
