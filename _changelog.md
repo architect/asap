@@ -6,7 +6,7 @@
 
 ### Added
 
-- Added avif to mime types;
+- Added `image/avif` to mime types
 
 ---
 

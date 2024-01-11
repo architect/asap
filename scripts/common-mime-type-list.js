@@ -67,6 +67,7 @@ module.exports = [
   'font/ttf',
   'font/woff',
   'font/woff2',
+  'image/avif',
   'image/gif',
   'image/jp2',
   'image/jpeg',
