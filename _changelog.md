@@ -2,6 +2,14 @@
 
 ---
 
+## [6.0.6] 2024-01-11
+
+### Added
+
+- Added `image/avif` to binary types
+
+---
+
 ## [6.0.5] 2024-01-11
 
 ### Added
