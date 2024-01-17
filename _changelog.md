@@ -6,7 +6,12 @@
 
 ### Added
 
-- Added `image/avif` to binary types
+- Added JPEG2000 file format support; fixes #1474
+
+
+### Fixed
+
+- Fixed AVIF file format support; thanks @jessehattabaugh
 
 ---
 
@@ -14,7 +19,7 @@
 
 ### Added
 
-- Added `image/avif` to mime types
+- Added AVIF file format support
 
 ---
 
