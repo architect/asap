@@ -13,6 +13,27 @@
 
 ---
 
+## [6.0.6] 2024-01-11
+
+### Added
+
+- Added JPEG2000 file format support; fixes #1474
+
+
+### Fixed
+
+- Fixed AVIF file format support; thanks @jessehattabaugh
+
+---
+
+## [6.0.5] 2024-01-11
+
+### Added
+
+- Added AVIF file format support
+
+---
+
 ## [6.0.4] 2023-11-20
 
 ### Fixed
