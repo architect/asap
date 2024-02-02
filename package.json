@@ -1,6 +1,6 @@
 {
   "name": "@architect/asap",
-  "version": "7.0.0-RC.2",
+  "version": "7.0.0",
   "description": "Architect Static Asset Proxy (ASAP) - a helpful library for Lambda-based static asset delivery",
   "main": "src/asap.js",
   "scripts": {
