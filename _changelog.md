@@ -2,6 +2,14 @@
 
 ---
 
+## [7.0.1 - 7.0.3] 2024-02-03
+
+### Fixed
+
+- Fixed issue loading assets from S3
+
+---
+
 ## [7.0.0] 2023-12-12
 
 ### Changed

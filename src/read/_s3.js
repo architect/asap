@@ -26,6 +26,7 @@ let { decompress } = require('../format/compress')
  * @returns {Promise<Object>} { statusCode, headers, body }
  */
 module.exports = async function readS3 (params) {
+
   let { Bucket, Key, IfNoneMatch, isFolder, config, rootPath } = params
   let { ARC_STATIC_PREFIX } = process.env
   let prefix = ARC_STATIC_PREFIX || config?.bucket?.folder
@@ -69,7 +70,7 @@ module.exports = async function readS3 (params) {
       Key = `${prefix}/${Key}`
     }
 
-    let options = { Bucket, Key }
+    let options = { Bucket, Key, rawResponsePayload: true }
     if (IfNoneMatch) {
       options.IfNoneMatch = IfNoneMatch
     }

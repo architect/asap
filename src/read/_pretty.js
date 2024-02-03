@@ -48,7 +48,7 @@ module.exports = async function pretty (params) {
   async function get (Key) {
     let getter = local ? getLocal : await getS3()
     try {
-      return await getter({ Bucket, Key })
+      return await getter({ Bucket, Key, rawResponsePayload: true })
     }
     catch (err) {
       if (err.name === 'NoSuchKey' || err.code === 'NoSuchKey') {
