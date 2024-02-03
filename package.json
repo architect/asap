@@ -25,8 +25,8 @@
     "src/*"
   ],
   "dependencies": {
-    "@aws-lite/client": "~0.16.0-RC.0",
-    "@aws-lite/s3": "^0.1.16"
+    "@aws-lite/client": "~0.16.0",
+    "@aws-lite/s3": "^0.1.17"
   },
   "devDependencies": {
     "@architect/eslint-config": "~2.1.2",

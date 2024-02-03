@@ -2,11 +2,12 @@
 
 ---
 
-## [7.0.1 - 7.0.3] 2024-02-03
+## [7.0.0, 7.0.3] 2024-02-03
 
 ### Fixed
 
 - Fixed issue loading assets from S3
+- 7.0.1 - 7.0.2 were temporary reversions to 6.0.6 to prevent any critical production issues
 
 ---
 
