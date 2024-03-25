@@ -25,20 +25,20 @@
     "src/*"
   ],
   "dependencies": {
-    "@aws-lite/client": "~0.17.1",
-    "@aws-lite/s3": "^0.1.18"
+    "@aws-lite/client": "~0.20.0",
+    "@aws-lite/s3": "^0.1.20"
   },
   "devDependencies": {
     "@architect/eslint-config": "~2.1.2",
     "@architect/req-res-fixtures": "git+https://github.com/architect/req-res-fixtures.git",
     "cross-env": "7.0.3",
-    "eslint": "~8.56.0",
+    "eslint": "~8.57.0",
     "mime-types": "~2.1.35",
-    "mock-tmp": "~0.0.2",
+    "mock-tmp": "~0.0.3",
     "nyc": "~15.1.0",
     "proxyquire": "~2.1.3",
     "tap-arc": "~1.2.2",
-    "tape": "~5.7.4"
+    "tape": "~5.7.5"
   },
   "keywords": [
     "aws",
