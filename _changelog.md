@@ -6,6 +6,7 @@
 
 ### Changed
 
+- Fixed order of preference for bucket name resolution so passed `bucket` param can override the `ARC_STATIC_BUCKET` env var; thanks @andybee!
 - Updated dependencies
 
 ---
