@@ -2,6 +2,14 @@
 
 ---
 
+## [7.0.9] 2024-04-29
+
+### Changed
+
+- Update dependencies
+
+---
+
 ## [7.0.8] 2024-03-25
 
 ### Changed
