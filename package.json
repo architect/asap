@@ -54,8 +54,5 @@
     "sns",
     "api gateway",
     "framework"
-  ],
-  "eslintConfig": {
-    "extends": "@architect/eslint-config"
-  }
+  ]
 }
