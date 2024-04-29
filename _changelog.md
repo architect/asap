@@ -2,11 +2,12 @@
 
 ---
 
-## [7.0.9] 2024-04-29
+## [7.0.9 - 7.0.10] 2024-04-29
 
 ### Changed
 
-- Update dependencies
+- Updated dependencies
+- Updated `package.json` `engines.node` property to reflect changes from v7
 
 ---
 
