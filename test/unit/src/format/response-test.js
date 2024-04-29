@@ -17,16 +17,16 @@ function basicResponse () {
         'cache-control': 'max-age=86400',
         etag: ETag,
       },
-      body
+      body,
     },
     // S3 result object
     result: {
       ContentType,
       ETag,
-      Body: body
+      Body: body,
     },
     Key: 'this-is-fine.gif',
-    config: { spa: true }
+    config: { spa: true },
   }
 }
 let htmlKey = 'index.html'

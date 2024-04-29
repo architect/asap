@@ -16,7 +16,7 @@ test('Templatizer ignores binary responses', t => {
   let response = { body: buf(content) }
   let result = filePath({
     isBinary: true,
-    response
+    response,
   })
   t.equal(content, result.body.toString(), 'Templatizer exited early')
 })
@@ -43,7 +43,7 @@ test('Templatizer replaces fingerprinted assets', t => {
   t.plan(6)
   let fingerprinted = 'this-is-fine-abc123.gif'
   let assets = {
-    'this-is-fine.gif': fingerprinted
+    'this-is-fine.gif': fingerprinted,
   }
   let response = { body: buf('here is an asset: ${STATIC(\'this-is-fine.gif\')}') }
   let result = filePath({ response, assets }).body.toString()
@@ -66,7 +66,7 @@ test('Templatizer replaces fingerprinted assets', t => {
 test('Templatizer does not replace fingerprinted assets locally', t => {
   t.plan(6)
   let assets = {
-    'this-is-fine.gif': 'this-is-fine-abc123.gif'
+    'this-is-fine.gif': 'this-is-fine-abc123.gif',
   }
   let isLocal = true
   let response = { body: buf('here is an asset: ${STATIC(\'this-is-fine.gif\')}') }

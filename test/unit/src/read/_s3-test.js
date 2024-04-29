@@ -51,7 +51,7 @@ function read (params = {}) {
     Key: Key || imgName,
     IfNoneMatch: IfNoneMatch || imgETag,
     config: config || { spa: true },
-    rootPath: rootPath || undefined
+    rootPath: rootPath || undefined,
   }
 }
 
@@ -88,7 +88,7 @@ let imgETag = 'abc123'
 let sut = join(process.cwd(), 'src', 'read', '_s3')
 let readS3 = proxyquire(sut, {
   '../lib/get-s3': getS3,
-  './_pretty': prettyStub
+  './_pretty': prettyStub,
 })
 
 test('Set up env', t => {
@@ -152,7 +152,7 @@ test('S3 proxy reader passes through ContentEncoding to response headers', async
   let Body = gzipSync(Buffer.from(imgContents))
   createResponse(null, null, {
     ContentEncoding,
-    Body
+    Body,
   })
   let result = await readS3(read())
   t.equal(result.statusCode, 200, 'Returns statusCode: 200')

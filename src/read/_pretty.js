@@ -41,7 +41,7 @@ module.exports = async function pretty (params) {
       throw err
     }
     else return {
-      Body: readFileSync(file)
+      Body: readFileSync(file),
     }
   }
 
@@ -86,10 +86,10 @@ module.exports = async function pretty (params) {
     return {
       headers: {
         'content-type': 'text/html; charset=utf8;',
-        'cache-control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+        'cache-control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0',
       },
       statusCode: 404,
-      body
+      body,
     }
   }
   else {

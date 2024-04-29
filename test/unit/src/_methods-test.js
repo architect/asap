@@ -6,7 +6,6 @@ let asap
 function setup () {
   delete require.cache[require.resolve(mod)]
   delete require.cache[require.resolve(join(mod, 'src', 'read'))]
-  // eslint-disable-next-line
   asap = require(mod)
 }
 

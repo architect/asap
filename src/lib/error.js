@@ -3,7 +3,7 @@
  */
 module.exports = {
   httpError,
-  proxyConfig: proxyConfig()
+  proxyConfig: proxyConfig(),
 }
 
 function proxyConfig () {
@@ -27,7 +27,7 @@ function httpError ({ statusCode = 502, title = 'Unknown error', message = '' })
     statusCode,
     headers: {
       'content-type': 'text/html; charset=utf8;',
-      'cache-control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+      'cache-control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0',
     },
     body: `
 <!DOCTYPE html>
@@ -96,6 +96,6 @@ function httpError ({ statusCode = 502, title = 'Unknown error', message = '' })
   </div>
 </body>
 </html>
-`
+`,
   }
 }

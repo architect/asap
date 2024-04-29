@@ -19,9 +19,8 @@ let setSandboxPath = tmp => sandboxPath = join(tmp, public)
 // static.json
 let staticStub = {
   'images/this-is-fine.gif': 'images/this-is-fine-a1c3e5.gif',
-  'publicfile.md': 'publicfile-b2d4f6.md'
+  'publicfile.md': 'publicfile-b2d4f6.md',
 }
-// eslint-disable-next-line
 let prettyStub = async () => 'pretty'
 
 // Generates proxy read requests
@@ -30,7 +29,7 @@ function read (params = {}) {
   return {
     Key: Key || 'images/this-is-fine.gif',
     IfNoneMatch: IfNoneMatch || 'abc123',
-    config: config || { spa: true, sandboxPath }
+    config: config || { spa: true, sandboxPath },
   }
 }
 
@@ -52,10 +51,10 @@ let imgETag = hash(imgContents)
 let binary = [
   137, 80, 78, 71,  13,  10,  26,  10,   0,  0, 0, 13,
   73, 72, 68, 82,   0,   0,   0,   1,   0,  0, 0,  1,
-    8,  4,  0,  0,   0, 181,  28,  12,   2,  0, 0,  0,
+  8,  4,  0,  0,   0, 181,  28,  12,   2,  0, 0,  0,
   11, 73, 68, 65,  84, 120, 218,  99, 100, 96, 0,  0,
-    0,  6,  0,  2,  48, 129, 208,  47,   0,  0, 0,  0,
-  73, 69, 78, 68, 174,  66,  96, 130
+  0,  6,  0,  2,  48, 129, 208,  47,   0,  0, 0,  0,
+  73, 69, 78, 68, 174,  66,  96, 130,
 ]
 
 let mdName = 'some-file.md'
@@ -66,7 +65,7 @@ let defaultCacheControl = 'public, max-age=0, must-revalidate'
 // Ok, we're good to go
 let sut = join(process.cwd(), 'src', 'read', '_local')
 let readLocal = proxyquire(sut, {
-  './_pretty': prettyStub
+  './_pretty': prettyStub,
 })
 
 test('Set up env', t => {
@@ -77,7 +76,7 @@ test('Set up env', t => {
 test('Local proxy reader returns formatted response from text payload (200)', async t => {
   t.plan(6)
   let tmp = mockTmp({
-    [join(public, imgName)]: imgContents
+    [join(public, imgName)]: imgContents,
   })
   setSandboxPath(tmp)
   let result = await readLocal(read())
@@ -93,7 +92,7 @@ test('Local proxy reader returns formatted response from text payload (200)', as
 test('Local proxy reader returns formatted response from binary payload (200)', async t => {
   t.plan(2)
   let tmp = mockTmp({
-    [join(public, imgName)]: Buffer.from(binary)
+    [join(public, imgName)]: Buffer.from(binary),
   })
   setSandboxPath(tmp)
   let result = await readLocal(read())
@@ -109,7 +108,7 @@ test('Local proxy reader unsets ARC_STATIC_PREFIX and returns formatted response
   t.ok(process.env.ARC_STATIC_PREFIX, 'ARC_STATIC_PREFIX set')
 
   let tmp = mockTmp({
-    [join(public, imgName)]: imgContents
+    [join(public, imgName)]: imgContents,
   })
   setSandboxPath(tmp)
   let params = read({ Key: `${process.env.ARC_STATIC_PREFIX}/${imgName}` })
@@ -127,7 +126,7 @@ test('Local proxy reader unsets ARC_STATIC_PREFIX and returns formatted response
 test('Local proxy reader returns 304 (aka S3 NotModified)', async t => {
   t.plan(2)
   let tmp = mockTmp({
-    [join(public, imgName)]: imgContents
+    [join(public, imgName)]: imgContents,
   })
   setSandboxPath(tmp)
   let params = read({ IfNoneMatch: hash(imgContents) })
@@ -143,7 +142,7 @@ test('Local proxy reader templatizes with local paths when fingerprinting is ena
   process.env.ARC_ENV = 'staging'
   let tmp = mockTmp({
     [join(public, mdName)]: mdContents,
-    [join(public, imgName)]: imgContents
+    [join(public, imgName)]: imgContents,
   })
   setSandboxPath(tmp)
   let params = read({ Key: mdName, config: { assets: staticStub, sandboxPath } })

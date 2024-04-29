@@ -45,7 +45,7 @@ test('Set up env', t => {
   t.plan(1)
   process.env.__TESTING__ = true
   pretty = proxyquire(sut, {
-    '../lib/get-s3': getS3
+    '../lib/get-s3': getS3,
   })
   t.ok(pretty, 'Loaded pretty')
 })
@@ -60,20 +60,20 @@ test('Peek and find nested index.html', async t => {
     Bucket,
     Key,
     headers,
-    isFolder
+    isFolder,
   })
   t.equal(result.body, 'got ok/hi/index.html', 'Successfully peeked into an S3 folder without a trailing slash')
 
   // Fingerprinting enabled
   let assets = {
-    'ok/hi/index.html': 'ok/hi/index-abc12.html'
+    'ok/hi/index.html': 'ok/hi/index-abc12.html',
   }
   result = await pretty({
     Bucket,
     Key,
     assets,
     headers,
-    isFolder
+    isFolder,
   })
   t.equal(result.body, 'got ok/hi/index-abc12.html', 'Successfully peeked into an S3 folder with fingerprinting enabled')
 
@@ -85,7 +85,7 @@ test('Peek and find nested index.html', async t => {
     assets,
     headers,
     isFolder,
-    prefix
+    prefix,
   })
   t.equal(result.body, 'got a-prefix/ok/hi/index-abc12.html', 'Successfully peeked into an S3 folder with fingerprinting and prefix enabled')
 
@@ -93,7 +93,7 @@ test('Peek and find nested index.html', async t => {
   process.env.ARC_ENV = 'testing'
   let msg = 'got ok/hi/index.html from local!'
   tmp = mockTmp({
-    'ok/hi/index.html': buf(msg)
+    'ok/hi/index.html': buf(msg),
   })
   result = await pretty({
     Bucket,
@@ -117,7 +117,7 @@ test('Peek and do not find nested index.html', async t => {
     Bucket,
     Key,
     headers,
-    isFolder
+    isFolder,
   })
   t.equal(result.statusCode, 404, 'Returns statusCode of 404 if S3 file is not found')
   t.match(result.body, /NoSuchKey/, 'Error message included in response from S3')
@@ -145,21 +145,21 @@ test('Return a custom 404', async t => {
     Bucket,
     Key,
     headers,
-    isFolder
+    isFolder,
   })
   t.equal(result.statusCode, 404, 'Returns statusCode of 404 with custom 404 error from S3')
   t.equal(result.body, 'got 404.html', 'Output is custom 404 page from S3 at: 404.html')
 
   // Fingerprinting enabled
   let assets = {
-    '404.html': '404-abc12.html'
+    '404.html': '404-abc12.html',
   }
   result = await pretty({
     Bucket,
     Key,
     assets,
     headers,
-    isFolder
+    isFolder,
   })
   t.equal(result.statusCode, 404, 'Returns statusCode of 404 with custom 404 error from S3')
   t.equal(result.body, 'got 404-abc12.html', 'Output is custom 404 page from S3 at: 404-abc12.html')
@@ -172,7 +172,7 @@ test('Return a custom 404', async t => {
     assets,
     headers,
     isFolder,
-    prefix
+    prefix,
   })
   t.equal(result.statusCode, 404, 'Returns statusCode of 404 with custom 404 error from S3')
   t.equal(result.body, 'got a-prefix/404-abc12.html', 'Output is custom 404 page from S3 at: a-prefix/404-abc12.html')
@@ -205,7 +205,7 @@ test('Return the default 404', async t => {
     Bucket,
     Key,
     headers,
-    isFolder
+    isFolder,
   })
   t.equal(result.statusCode, 404, 'Returns statusCode of 404 if S3 file is not found')
   t.match(result.body, /NoSuchKey/, 'Error message included in response from S3')
@@ -226,7 +226,7 @@ test('Return the default 404', async t => {
 
   // Check casing
   tmp = mockTmp({
-    '404.HTML': 'yo'
+    '404.HTML': 'yo',
   })
   errorState = 'NoSuchKey'
   result = await pretty({

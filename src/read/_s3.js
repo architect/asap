@@ -57,8 +57,8 @@ module.exports = async function readS3 (params) {
         statusCode: 302,
         headers: {
           location,
-          'cache-control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
-        }
+          'cache-control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0',
+        },
       }
     }
 
@@ -87,7 +87,7 @@ module.exports = async function readS3 (params) {
         headers.etag = IfNoneMatch
         response = {
           statusCode: 304,
-          headers
+          headers,
         }
       }
       else {

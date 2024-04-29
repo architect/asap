@@ -12,7 +12,7 @@ function compressor (direction, type, data) {
   let exec = {
     gzip: compress ? gzipSync : gunzipSync,
     br: compress ? brotliCompressSync : brotliDecompressSync,
-    deflate: compress ? deflateSync : inflateSync
+    deflate: compress ? deflateSync : inflateSync,
   }
   if (!exec[type]) throw ReferenceError('Invalid compression type specified, must be gzip, br, or deflate')
 
@@ -21,5 +21,5 @@ function compressor (direction, type, data) {
 
 module.exports = {
   compress: compressor.bind({}, 'compress'),
-  decompress: compressor.bind({}, 'decompress')
+  decompress: compressor.bind({}, 'decompress'),
 }

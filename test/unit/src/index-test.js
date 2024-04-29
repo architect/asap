@@ -5,7 +5,7 @@ let reader = params => params
 let readStub = () => reader
 let sut = join(process.cwd())
 let asap = proxyquire(sut, {
-  './read': readStub
+  './read': readStub,
 })
 let { http } = require('@architect/req-res-fixtures')
 let reqs = http.req
@@ -17,7 +17,7 @@ let productionBucket = 'my-production-bucket'
 let basicBucketConfig = {
   bucket: {
     staging: stagingBucket,
-  }
+  },
 }
 
 test('Set up env', t => {
@@ -42,8 +42,8 @@ test('Config: bucket', async t => {
   // Test ARC_STATIC_BUCKET vs config
   proxy = asap({
     bucket: {
-      production: stagingBucket
-    }
+      production: stagingBucket,
+    },
   })
   result = await proxy(req)
   t.equal(result.Bucket, productionBucket, 'ARC_STATIC_BUCKET overrides config')
@@ -52,8 +52,8 @@ test('Config: bucket', async t => {
   // Test config.bucket
   proxy = asap({
     bucket: {
-      staging: stagingBucket
-    }
+      staging: stagingBucket,
+    },
   })
   result = await proxy(req)
   t.equal(result.Bucket, stagingBucket, 'config.bucket sets bucket')
@@ -150,7 +150,7 @@ test('rootPath param', async t => {
 
   let params = proxyReq
   params.requestContext = {
-    path: '/staging/nature/hiking'
+    path: '/staging/nature/hiking',
   }
   result = await proxy(proxyReq)
   t.equal(result.rootPath, 'staging', 'rootPath param correctly set: staging')
