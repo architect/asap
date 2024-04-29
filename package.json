@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "eslint . --fix",
     "rc": "npm version prerelease --preid RC",
+    "test:nolint": "npm run coverage",
     "test": "npm run lint && npm run coverage",
     "test:unit": "cross-env tape 'test/unit/**/*-test.js' | tap-arc",
     "coverage": "nyc --reporter=lcov --reporter=text npm run test:unit",
